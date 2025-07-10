@@ -188,6 +188,26 @@
             color: #721c24;
             border-color: #f5c6cb;
         }
+
+        /* Camera specific styles */
+        #cameraStream {
+            width: 100%;
+            height: auto;
+            background-color: #000;
+            border-radius: 8px;
+            display: block; /* Ensure it takes full width */
+        }
+        #captureCanvas {
+            display: block; /* Hidden by default, shown after capture */
+            margin-top: 15px;
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .camera-controls button {
+            margin-top: 10px;
+        }
         /* --- CSS STYLES END --- */
     </style>
 </head>
@@ -211,6 +231,17 @@
             <button onclick="logWater()">Add Water</button>
             <p id="waterStatus">Drank: 0.00 L (0.0%)</p>
             <div id="waterFeedback" class="feedback-message hidden"></div>
+        </section>
+
+        <section class="card">
+            <h2>📸 Camera Water Level Estimator</h2>
+            <p>Use your camera to capture an image of your water container. You'll need to manually estimate the water level from the picture.</p>
+            <button onclick="startCamera()">Start Camera</button>
+            <button onclick="captureImage()">Capture Image</button>
+            <button onclick="stopCamera()">Stop Camera</button>
+            <video id="cameraStream" autoplay playsinline class="hidden"></video>
+            <canvas id="captureCanvas" class="hidden"></canvas>
+            <div id="cameraFeedback" class="feedback-message hidden"></div>
         </section>
 
         <section class="card">
@@ -266,7 +297,8 @@
                 { name: "Diana", totalRunDistance: 8.1 },
                 { name: "Eve", totalRunDistance: 12.3 },
                 { name: "Frank", totalRunDistance: 4.0 }
-            ]
+            ],
+            cameraStream: null // To hold the camera video stream
         };
 
         // --- Utility: Local Storage ---
@@ -377,6 +409,72 @@
 
         // Listen for changes on the water goal input
         document.getElementById("waterGoal").addEventListener('change', updateWaterProgress);
+
+        // --- Camera Functionality ---
+        const cameraStreamElement = document.getElementById('cameraStream');
+        const captureCanvas = document.getElementById('captureCanvas');
+        const canvasContext = captureCanvas.getContext('2d');
+
+        async function startCamera() {
+            if (appState.cameraStream) {
+                showFeedback('cameraFeedback', 'Camera already active.', 'info');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                appState.cameraStream = stream;
+                cameraStreamElement.srcObject = stream;
+                cameraStreamElement.classList.remove('hidden');
+                captureCanvas.classList.add('hidden'); // Hide canvas if stream starts
+                showFeedback('cameraFeedback', 'Camera started! Point it at your container.');
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                let errorMessage = 'Could not access camera.';
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errorMessage = 'Camera access denied. Please allow camera permissions.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage = 'No camera found on this device.';
+                }
+                showFeedback('cameraFeedback', errorMessage, 'error');
+            }
+        }
+
+        function captureImage() {
+            if (!appState.cameraStream) {
+                showFeedback('cameraFeedback', 'Camera not active. Please start camera first.', 'error');
+                return;
+            }
+
+            // Set canvas dimensions to match video stream
+            captureCanvas.width = cameraStreamElement.videoWidth;
+            captureCanvas.height = cameraStreamElement.videoHeight;
+            
+            // Draw the current video frame onto the canvas
+            canvasContext.drawImage(cameraStreamElement, 0, 0, captureCanvas.width, captureCanvas.height);
+            
+            // Display the captured image and hide the live stream
+            captureCanvas.classList.remove('hidden');
+            cameraStreamElement.classList.add('hidden');
+            showFeedback('cameraFeedback', 'Image captured! Estimate your water level from the picture.');
+            // Optionally stop the camera stream after capturing
+            // stopCamera(); 
+        }
+
+        function stopCamera() {
+            if (appState.cameraStream) {
+                appState.cameraStream.getTracks().forEach(track => track.stop());
+                appState.cameraStream = null;
+                cameraStreamElement.srcObject = null;
+                cameraStreamElement.classList.add('hidden');
+                // Keep the captured image visible if any, or hide it if you prefer
+                // captureCanvas.classList.add('hidden');
+                showFeedback('cameraFeedback', 'Camera stopped.');
+            } else {
+                showFeedback('cameraFeedback', 'Camera is not active.', 'info');
+            }
+        }
+
 
         // --- Run Tracking (Mapbox Integration) ---
         // IMPORTANT: Replace 'YOUR_MAPBOX_ACCESS_TOKEN' with your actual Mapbox Public Access Token!
