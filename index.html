@@ -43,6 +43,14 @@
             margin-bottom: 10px;
         }
 
+        h4 {
+            color: #666;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+
         .card {
             background: white;
             padding: 20px;
@@ -228,6 +236,34 @@
             background: #0055cc; /* Darker blue for active tab */
             box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); /* Inset shadow for active state */
         }
+
+        /* Styles for AI Advice sections */
+        .ai-advice {
+            background-color: #e8f5e9; /* Light green background */
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #2e7d32; /* Dark green text */
+        }
+        .ai-advice h4 {
+            color: #1b5e20; /* Even darker green for heading */
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .ai-advice ul {
+            list-style-type: disc; /* Use regular bullets for lists */
+            margin-left: 20px;
+            padding-left: 0;
+        }
+        .ai-advice ul li {
+            background: none;
+            border: none;
+            padding: 5px 0;
+            margin-bottom: 5px;
+            color: #388e3c;
+        }
+
         /* --- CSS STYLES END --- */
     </style>
 </head>
@@ -267,12 +303,23 @@
             <video id="cameraStream" autoplay playsinline class="hidden"></video>
             <canvas id="captureCanvas" class="hidden"></canvas>
             <div id="cameraFeedback" class="feedback-message hidden"></div>
+
+            <hr> <div class="ai-advice">
+                <h4>🧠 AI Water Advice</h4>
+                <ul>
+                    <li>**Stay consistent:** Sip water throughout the day, don't wait until you're thirsty!</li>
+                    <li>**Hydrate before meals:** Drinking a glass of water before eating can aid digestion and help manage appetite.</li>
+                    <li>**Factor in activity:** Increase your water intake when exercising or in hot weather. Aim for 0.5-1.0L per hour of moderate to intense activity.</li>
+                    <li>**Monitor urine color:** Pale yellow usually indicates good hydration. Darker urine suggests you need more water.</li>
+                    <li>**Add flavor naturally:** If plain water is boring, try adding slices of lemon, cucumber, or berries.</li>
+                </ul>
+            </div>
         </section>
 
         <section id="runSection" class="card hidden">
             <h2>📍 Run Tracker</h2>
             <label>Daily Goal (km): <input type="number" id="runDailyGoal" value="5" min="0.1" step="0.1" /></label>
-            <label>Monthly Goal (km): <input type="number" id="runMonthlyGoal" value="100" min="1" step="1" /></label>
+            <label>Monthly Goal (L): <input type="number" id="runMonthlyGoal" value="100" min="1" step="1" /></label>
             <button onclick="startRun()">Start Run</button>
             <button onclick="stopRun()">Stop Run</button>
             <p id="runStatus">Not running</p>
@@ -282,6 +329,17 @@
             <p>Total Lifetime Run: <span id="totalRunDisplay">0.00 km</span></p>
             <div id="map"></div>
             <div id="runFeedback" class="feedback-message hidden"></div>
+
+            <hr> <div class="ai-advice">
+                <h4>🧠 AI Running Advice</h4>
+                <ul>
+                    <li>**Pre-run hydration:** Drink 500ml of water 1-2 hours before your run.</li>
+                    <li>**During long runs:** For runs over 60 minutes, consider electrolytes or sports drinks. Aim for 150-250ml every 15-20 minutes.</li>
+                    <li>**Post-run recovery:** Replenish fluids and electrolytes immediately after your run. Weigh yourself before and after a run to estimate fluid loss (1kg lost = 1 liter to replace).</li>
+                    <li>**Warm-up is key:** Always start with a dynamic warm-up to prepare your muscles and prevent injury.</li>
+                    <li>**Listen to your body:** Don't push through sharp pain. Rest and recovery are just as important as training.</li>
+                </ul>
+            </div>
 
             <hr> <h3>👫 Friends & Leaderboard</h3>
             <label>Add friend by username: <input type="text" id="friendName" placeholder="Friend's username" /></label>
