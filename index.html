@@ -209,6 +209,25 @@
         .camera-controls button {
             margin-top: 10px;
         }
+
+        /* New styles for section toggling */
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* Space between buttons */
+            margin-bottom: 25px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .tab-buttons button {
+            flex: 1; /* Make buttons take equal width */
+            margin-top: 0; /* Override default button margin */
+        }
+        .tab-buttons button.active {
+            background: #0055cc; /* Darker blue for active tab */
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); /* Inset shadow for active state */
+        }
         /* --- CSS STYLES END --- */
     </style>
 </head>
@@ -225,16 +244,10 @@
             <p>Welcome, <span id="userDisplay"></span> <button onclick="logout()">Logout</button></p>
         </header>
 
-        <section class="card">
-            <h2>💧 Water Tracker</h2>
-            <label>Daily Goal (L): <input type="number" id="waterDailyGoal" value="2" min="0.1" step="0.1" /></label>
-            <label>Monthly Goal (L): <input type="number" id="waterMonthlyGoal" value="60" min="1" step="1" /></label>
-            <label>Add Water (L): <input type="number" id="waterInput" min="0.1" step="0.1" /></label>
-            <button onclick="logWater()">Add Water</button>
-            <p>Daily: <span id="waterDailyStatus">Drank: 0.00 L (0.0%)</span></p>
-            <p>Monthly: <span id="waterMonthlyStatus">Drank: 0.00 L (0.0%)</span></p>
-            <div id="waterFeedback" class="feedback-message hidden"></div>
-        </section>
+        <div class="tab-buttons">
+            <button id="showWaterBtn" onclick="showSection('waterSection')">💧 Water Tracker</button>
+            <button id="showRunBtn" onclick="showSection('runSection')">🏃 Run Tracker</button>
+        </div>
 
         <section class="card">
             <h2>📸 Camera Water Level Estimator</h2>
@@ -247,7 +260,18 @@
             <div id="cameraFeedback" class="feedback-message hidden"></div>
         </section>
 
-        <section class="card">
+        <section id="waterSection" class="card">
+            <h2>💧 Water Tracker</h2>
+            <label>Daily Goal (L): <input type="number" id="waterDailyGoal" value="2" min="0.1" step="0.1" /></label>
+            <label>Monthly Goal (L): <input type="number" id="waterMonthlyGoal" value="60" min="1" step="1" /></label>
+            <label>Add Water (L): <input type="number" id="waterInput" min="0.1" step="0.1" /></label>
+            <button onclick="logWater()">Add Water</button>
+            <p>Daily: <span id="waterDailyStatus">Drank: 0.00 L (0.0%)</span></p>
+            <p>Monthly: <span id="waterMonthlyStatus">Drank: 0.00 L (0.0%)</span></p>
+            <div id="waterFeedback" class="feedback-message hidden"></div>
+        </section>
+
+        <section id="runSection" class="card hidden">
             <h2>📍 Run Tracker</h2>
             <label>Daily Goal (km): <input type="number" id="runDailyGoal" value="5" min="0.1" step="0.1" /></label>
             <label>Monthly Goal (km): <input type="number" id="runMonthlyGoal" value="100" min="1" step="1" /></label>
@@ -285,26 +309,25 @@
                 username: "",
                 waterDrankDaily: 0,
                 waterDailyGoal: 2,
-                waterDrankMonthly: 0, // Monthly water tracking
-                waterMonthlyGoal: 60, // Monthly water goal
-                runDistanceDaily: 0, // Daily run tracking
-                runDailyGoal: 5, // Daily run goal
-                runDistanceMonthly: 0, // Monthly run tracking
-                runMonthlyGoal: 100, // Monthly run goal
-                totalRunDistance: 0, // Accumulates all runs (lifetime)
+                waterDrankMonthly: 0, 
+                waterMonthlyGoal: 60, 
+                runDistanceDaily: 0, 
+                runDailyGoal: 5, 
+                runDistanceMonthly: 0, 
+                runMonthlyGoal: 100, 
+                totalRunDistance: 0, 
                 friends: [],
-                lastDailyReset: new Date().toDateString(), // Track last daily reset
-                lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString() // Track last monthly reset
+                lastDailyReset: new Date().toDateString(), 
+                lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString() 
             },
             currentRun: {
                 isActive: false,
-                segmentDistance: 0, // Distance for the currently active run
+                segmentDistance: 0, 
                 routeCoordinates: [],
-                watchId: null, // GPS watch ID
+                watchId: null, 
                 map: null,
                 marker: null,
             },
-            // Simulated other runners for the leaderboard (in a real app, this would be from a backend)
             otherRunners: [
                 { name: "Alice", totalRunDistance: 7.2 },
                 { name: "Bob", totalRunDistance: 5.5 },
@@ -313,7 +336,7 @@
                 { name: "Eve", totalRunDistance: 12.3 },
                 { name: "Frank", totalRunDistance: 4.0 }
             ],
-            cameraStream: null // To hold the camera video stream
+            cameraStream: null 
         };
 
         // --- Utility: Local Storage ---
@@ -325,7 +348,6 @@
             const storedState = localStorage.getItem('hydrunAppState');
             if (storedState) {
                 const loadedUser = JSON.parse(storedState);
-                // Assign loaded values, ensuring numbers are parsed correctly
                 appState.user.username = loadedUser.username || "";
                 appState.user.waterDrankDaily = parseFloat(loadedUser.waterDrankDaily) || 0;
                 appState.user.waterDailyGoal = parseFloat(loadedUser.waterDailyGoal) || 2;
@@ -340,7 +362,7 @@
                 appState.user.lastDailyReset = loadedUser.lastDailyReset || new Date().toDateString();
                 appState.user.lastMonthlyReset = loadedUser.lastMonthlyReset || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString();
             }
-            checkAndResetGoals(); // Check for daily/monthly resets on load
+            checkAndResetGoals(); 
         }
 
         function checkAndResetGoals() {
@@ -353,7 +375,7 @@
                 appState.user.waterDrankDaily = 0;
                 appState.user.runDistanceDaily = 0;
                 appState.user.lastDailyReset = today;
-                saveAppState(); // Save immediately after reset
+                saveAppState(); 
             }
 
             // Monthly reset
@@ -362,7 +384,7 @@
                 appState.user.waterDrankMonthly = 0;
                 appState.user.runDistanceMonthly = 0;
                 appState.user.lastMonthlyReset = thisMonthStart;
-                saveAppState(); // Save immediately after reset
+                saveAppState(); 
             }
         }
 
@@ -370,13 +392,36 @@
         function showFeedback(elementId, message, type = 'success', duration = 3000) {
             const feedbackElement = document.getElementById(elementId);
             feedbackElement.textContent = message;
-            feedbackElement.className = `feedback-message show ${type}`; // Add type for potential styling
+            feedbackElement.className = `feedback-message show ${type}`; 
             feedbackElement.classList.remove('hidden');
             setTimeout(() => {
                 feedbackElement.classList.add('hidden');
                 feedbackElement.classList.remove('show');
             }, duration);
         }
+
+        // --- Section Toggling ---
+        function showSection(sectionIdToShow) {
+            const sections = ['waterSection', 'runSection']; // All sections that can be toggled
+            const buttons = {
+                'waterSection': document.getElementById('showWaterBtn'),
+                'runSection': document.getElementById('showRunBtn')
+            };
+
+            sections.forEach(id => {
+                const section = document.getElementById(id);
+                const button = buttons[id];
+
+                if (id === sectionIdToShow) {
+                    section.classList.remove('hidden');
+                    if (button) button.classList.add('active');
+                } else {
+                    section.classList.add('hidden');
+                    if (button) button.classList.remove('active');
+                }
+            });
+        }
+
 
         // --- Core UI Management ---
         function updateAppUI() {
@@ -393,10 +438,13 @@
 
                 // Initial updates
                 updateWaterProgress();
-                updateRunProgress(); // Function for run progress
+                updateRunProgress(); 
                 updateTotalRunDisplay();
                 updateFriendList();
                 updateLeaderboard();
+
+                // Show water section by default on app load
+                showSection('waterSection'); 
             } else {
                 document.getElementById("loginContainer").classList.remove("hidden");
                 document.getElementById("appContainer").classList.add("hidden");
@@ -417,11 +465,8 @@
         }
 
         function logout() {
-            // Note: In a real application, logging out would typically clear
-            // only session-specific data, not all user progress.
-            // For this client-side demo, we reset everything.
             localStorage.removeItem('hydrunAppState'); 
-            location.reload(); // Reload the page to reset the app state and show login
+            location.reload(); 
         }
 
         // --- Water Tracking ---
@@ -430,8 +475,8 @@
             const amount = parseFloat(waterInput.value);
             if (!isNaN(amount) && amount > 0) {
                 appState.user.waterDrankDaily += amount;
-                appState.user.waterDrankMonthly += amount; // Add to monthly total
-                waterInput.value = ''; // Clear input field
+                appState.user.waterDrankMonthly += amount; 
+                waterInput.value = ''; 
                 saveAppState();
                 updateWaterProgress();
                 showFeedback('waterFeedback', `${amount.toFixed(2)} L of water added!`);
@@ -449,7 +494,6 @@
 
             let feedbackMessage = "";
 
-            // Update daily goal
             if (!isNaN(dailyGoal) && dailyGoal > 0) {
                 if (appState.user.waterDailyGoal !== dailyGoal) {
                     appState.user.waterDailyGoal = dailyGoal;
@@ -457,10 +501,8 @@
                 }
             } else {
                 dailyGoalInput.value = appState.user.waterDailyGoal;
-                // No alert here, as it might trigger on initial load with default value
             }
 
-            // Update monthly goal
             if (!isNaN(monthlyGoal) && monthlyGoal > 0) {
                 if (appState.user.waterMonthlyGoal !== monthlyGoal) {
                     appState.user.waterMonthlyGoal = monthlyGoal;
@@ -468,7 +510,6 @@
                 }
             } else {
                 monthlyGoalInput.value = appState.user.waterMonthlyGoal;
-                // No alert here, as it might trigger on initial load with default value
             }
 
             if (feedbackMessage) {
@@ -483,10 +524,9 @@
             document.getElementById("waterMonthlyStatus").textContent =
                 `Drank: ${appState.user.waterDrankMonthly.toFixed(2)} L (${monthlyPercent}%)`;
             
-            saveAppState(); // Save state after progress update (including goal changes)
+            saveAppState(); 
         }
 
-        // Listen for changes on the water goal inputs
         document.getElementById("waterDailyGoal").addEventListener('change', updateWaterProgress);
         document.getElementById("waterMonthlyGoal").addEventListener('change', updateWaterProgress);
 
@@ -507,7 +547,7 @@
                 appState.cameraStream = stream;
                 cameraStreamElement.srcObject = stream;
                 cameraStreamElement.classList.remove('hidden');
-                captureCanvas.classList.add('hidden'); // Hide canvas if stream starts
+                captureCanvas.classList.add('hidden'); 
                 showFeedback('cameraFeedback', 'Camera started! Point it at your container, then "Capture Image".');
             } catch (err) {
                 console.error('Error accessing camera:', err);
@@ -527,20 +567,16 @@
                 return;
             }
 
-            // Set canvas dimensions to match video stream
             captureCanvas.width = cameraStreamElement.videoWidth;
             captureCanvas.height = cameraStreamElement.videoHeight;
             
-            // Draw the current video frame onto the canvas
             canvasContext.drawImage(cameraStreamElement, 0, 0, captureCanvas.width, captureCanvas.height);
             
-            // Display the captured image and hide the live stream
             captureCanvas.classList.remove('hidden');
             cameraStreamElement.classList.add('hidden');
             
-            // Guide the user for manual input
             showFeedback('cameraFeedback', 'Image captured! Now, based on the picture, manually estimate the water amount and use the "Add Water" button above.', 'info', 7000);
-            waterInputManual.focus(); // Optionally focus the water input for convenience
+            waterInputManual.focus(); 
         }
 
         function stopCamera() {
@@ -549,8 +585,7 @@
                 appState.cameraStream = null;
                 cameraStreamElement.srcObject = null;
                 cameraStreamElement.classList.add('hidden');
-                // Keep the captured image visible if any, or hide it if you prefer
-                captureCanvas.classList.add('hidden'); // Hide canvas when stopping camera
+                captureCanvas.classList.add('hidden'); 
                 showFeedback('cameraFeedback', 'Camera stopped.', 'info');
             } else {
                 showFeedback('cameraFeedback', 'Camera is not active.', 'info');
@@ -564,12 +599,12 @@
         mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN'; 
 
         function initMap() {
-            if (appState.currentRun.map) return; // Map already initialized
+            if (appState.currentRun.map) return; 
 
             appState.currentRun.map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/streets-v11',
-                center: [0, 0], // Will be updated to user's location
+                center: [0, 0], 
                 zoom: 15
             });
 
@@ -606,9 +641,9 @@
                     message = "Geolocation request timed out. Check your GPS signal.";
                     break;
             }
-            showFeedback('runFeedback', message, 'error', 5000); // Display error message
+            showFeedback('runFeedback', message, 'error', 5000); 
             document.getElementById('runStatus').textContent = 'Geolocation error. Not running.';
-            appState.currentRun.isActive = false; // Ensure run is marked as inactive
+            appState.currentRun.isActive = false; 
         }
 
 
@@ -623,16 +658,15 @@
                 return;
             }
 
-            initMap(); // Ensure map is initialized
+            initMap(); 
 
             appState.currentRun.isActive = true;
-            appState.currentRun.segmentDistance = 0; // Reset distance for this new run
-            appState.currentRun.routeCoordinates = []; // Clear previous route
+            appState.currentRun.segmentDistance = 0; 
+            appState.currentRun.routeCoordinates = []; 
             document.getElementById('runStatus').textContent = 'Running...';
             document.getElementById('distanceDisplay').textContent = `Current Run: 0.00 km`;
             showFeedback('runFeedback', 'Run started! Tracking your position...');
 
-            // Get initial position and set map center/marker
             navigator.geolocation.getCurrentPosition(pos => {
                 const { latitude, longitude } = pos.coords;
                 const coords = [longitude, latitude];
@@ -660,7 +694,7 @@
 
                 appState.currentRun.routeCoordinates.push(newCoords);
                 appState.currentRun.marker.setLngLat(newCoords);
-                appState.currentRun.map.setCenter(newCoords); // Keep map centered on user
+                appState.currentRun.map.setCenter(newCoords); 
                 drawRoute();
                 document.getElementById('distanceDisplay').textContent = `Current Run: ${appState.currentRun.segmentDistance.toFixed(2)} km`;
 
@@ -682,20 +716,17 @@
             document.getElementById('runStatus').textContent = 'Not running';
             showFeedback('runFeedback', `Run stopped. Distance: ${appState.currentRun.segmentDistance.toFixed(2)} km`, 'success', 5000);
 
-            // Add this run's distance to the user's total lifetime, daily, and monthly distance
             appState.user.totalRunDistance += appState.currentRun.segmentDistance;
-            appState.user.runDistanceDaily += appState.currentRun.segmentDistance; // Add to daily total
-            appState.user.runDistanceMonthly += appState.currentRun.segmentDistance; // Add to monthly total
+            appState.user.runDistanceDaily += appState.currentRun.segmentDistance; 
+            appState.user.runDistanceMonthly += appState.currentRun.segmentDistance; 
             
-            saveAppState(); // Save the updated run distances
-            updateRunProgress(); // Update run progress displays
-            updateTotalRunDisplay(); // Update lifetime display
-            updateLeaderboard(); // Refresh leaderboard
+            saveAppState(); 
+            updateRunProgress(); 
+            updateTotalRunDisplay(); 
+            updateLeaderboard(); 
 
-            // Reset for the next run
             appState.currentRun.segmentDistance = 0;
             appState.currentRun.routeCoordinates = [];
-            // Optionally remove the route line or reset map view
             if (appState.currentRun.map && appState.currentRun.map.getSource('route')) {
                 appState.currentRun.map.getSource('route').setData({
                     type: 'Feature',
@@ -722,7 +753,6 @@
 
             let feedbackMessage = "";
 
-            // Update daily run goal
             if (!isNaN(dailyGoal) && dailyGoal > 0) {
                 if (appState.user.runDailyGoal !== dailyGoal) {
                     appState.user.runDailyGoal = dailyGoal;
@@ -730,10 +760,8 @@
                 }
             } else {
                 dailyGoalInput.value = appState.user.runDailyGoal;
-                // No alert here, as it might trigger on initial load with default value
             }
 
-            // Update monthly run goal
             if (!isNaN(monthlyGoal) && monthlyGoal > 0) {
                 if (appState.user.runMonthlyGoal !== monthlyGoal) {
                     appState.user.runMonthlyGoal = monthlyGoal;
@@ -741,7 +769,6 @@
                 }
             } else {
                 monthlyGoalInput.value = appState.user.runMonthlyGoal;
-                // No alert here, as it might trigger on initial load with default value
             }
 
             if (feedbackMessage) {
@@ -756,10 +783,9 @@
             document.getElementById("runMonthlyStatus").textContent =
                 `Ran: ${appState.user.runDistanceMonthly.toFixed(2)} km (${monthlyPercent}%)`;
             
-            saveAppState(); // Save state after progress update (including goal changes)
+            saveAppState(); 
         }
 
-        // Listen for changes on the run goal inputs
         document.getElementById("runDailyGoal").addEventListener('change', updateRunProgress);
         document.getElementById("runMonthlyGoal").addEventListener('change', updateRunProgress);
 
@@ -768,9 +794,8 @@
             document.getElementById('totalRunDisplay').textContent = `${appState.user.totalRunDistance.toFixed(2)} km`;
         }
 
-        // Haversine formula to calculate distance between two lat/lon points
         function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius of Earth in kilometers
+            const R = 6371; 
             const dLat = deg2rad(lat2 - lat1);
             const dLon = deg2rad(lon2 - lon1);
             const a =
@@ -795,7 +820,6 @@
                 return;
             }
 
-            // Prevent adding self or duplicates
             if (friendName === appState.user.username) {
                 showFeedback('friendFeedback', `You cannot add yourself as a friend.`, 'error');
                 return;
@@ -804,17 +828,16 @@
                 showFeedback('friendFeedback', `"${friendName}" is already on your friends list.`, 'error');
                 return;
             }
-            // Check if the friend exists in our simulated otherRunners
             if (!appState.otherRunners.some(r => r.name === friendName)) {
                 showFeedback('friendFeedback', `"${friendName}" not found in the system.`, 'error');
                 return;
             }
 
             appState.user.friends.push(friendName);
-            saveAppState(); // Save updated friends list
+            saveAppState(); 
             updateFriendList();
-            friendNameInput.value = ''; // Clear input
-            updateLeaderboard(); // Update leaderboard with new friend (if they are in otherRunners)
+            friendNameInput.value = ''; 
+            updateLeaderboard(); 
             showFeedback('friendFeedback', `"${friendName}" added to your friends list!`);
         }
 
@@ -835,31 +858,26 @@
         }
 
         function updateLeaderboard() {
-            // Combine current user with other runners and friends
             let allRunners = [
                 { name: appState.user.username, totalRunDistance: appState.user.totalRunDistance }
             ];
 
-            // Add other simulated runners and friends
             appState.otherRunners.forEach(other => {
-                // Ensure we don't add the current user or duplicate friends
                 if (other.name !== appState.user.username && !allRunners.some(r => r.name === other.name)) {
                     allRunners.push(other);
                 }
             });
 
-            // Sort by totalRunDistance in descending order
             allRunners.sort((a, b) => b.totalRunDistance - a.totalRunDistance);
 
             const leaderboard = document.getElementById("leaderboardList");
-            leaderboard.innerHTML = ''; // Clear existing list
+            leaderboard.innerHTML = ''; 
 
-            // Populate the leaderboard
             allRunners.forEach(runner => {
                 const li = document.createElement('li');
                 li.textContent = `${runner.name} - ${runner.totalRunDistance.toFixed(2)} km`;
                 if (runner.name === appState.user.username) {
-                    li.classList.add('highlight-user'); // Highlight current user
+                    li.classList.add('highlight-user'); 
                 }
                 leaderboard.appendChild(li);
             });
@@ -867,9 +885,9 @@
 
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadAppState(); // Load data when the DOM is ready
-            updateAppUI();  // Update UI based on loaded data
-            initMap();      // Initialize the map (but don't start running yet)
+            loadAppState(); 
+            updateAppUI();  
+            initMap();      
         });
         /* --- JAVASCRIPT LOGIC END --- */
     </script>
