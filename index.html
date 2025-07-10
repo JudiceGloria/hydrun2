@@ -249,17 +249,6 @@
             <button id="showRunBtn" onclick="showSection('runSection')">🏃 Run Tracker</button>
         </div>
 
-        <section class="card">
-            <h2>📸 Camera Water Level Estimator</h2>
-            <p>Use your camera to capture an image of your water container. Based on the picture, **you'll need to manually estimate** the water added or remaining and log it in the Water Tracker section.</p>
-            <button onclick="startCamera()">Start Camera</button>
-            <button onclick="captureImage()">Capture Image</button>
-            <button onclick="stopCamera()">Stop Camera</button>
-            <video id="cameraStream" autoplay playsinline class="hidden"></video>
-            <canvas id="captureCanvas" class="hidden"></canvas>
-            <div id="cameraFeedback" class="feedback-message hidden"></div>
-        </section>
-
         <section id="waterSection" class="card">
             <h2>💧 Water Tracker</h2>
             <label>Daily Goal (L): <input type="number" id="waterDailyGoal" value="2" min="0.1" step="0.1" /></label>
@@ -269,6 +258,15 @@
             <p>Daily: <span id="waterDailyStatus">Drank: 0.00 L (0.0%)</span></p>
             <p>Monthly: <span id="waterMonthlyStatus">Drank: 0.00 L (0.0%)</span></p>
             <div id="waterFeedback" class="feedback-message hidden"></div>
+
+            <hr> <h3>📸 Camera for Water Estimation</h3>
+            <p>Use your camera to capture an image of your water container. Based on the picture, **you'll need to manually estimate** the water added or remaining and log it above.</p>
+            <button onclick="startCamera()">Start Camera</button>
+            <button onclick="captureImage()">Capture Image</button>
+            <button onclick="stopCamera()">Stop Camera</button>
+            <video id="cameraStream" autoplay playsinline class="hidden"></video>
+            <canvas id="captureCanvas" class="hidden"></canvas>
+            <div id="cameraFeedback" class="feedback-message hidden"></div>
         </section>
 
         <section id="runSection" class="card hidden">
@@ -284,18 +282,16 @@
             <p>Total Lifetime Run: <span id="totalRunDisplay">0.00 km</span></p>
             <div id="map"></div>
             <div id="runFeedback" class="feedback-message hidden"></div>
-        </section>
 
-        <section class="card">
-            <h2>👫 Friends & Leaderboard</h2>
+            <hr> <h3>👫 Friends & Leaderboard</h3>
             <label>Add friend by username: <input type="text" id="friendName" placeholder="Friend's username" /></label>
             <button onclick="addFriend()">Add Friend</button>
             <div id="friendFeedback" class="feedback-message hidden"></div>
 
-            <h3>Your Friends</h3>
+            <h4>Your Friends</h4>
             <ul id="friendList"></ul>
 
-            <h3>🏆 Leaderboard</h3>
+            <h4>🏆 Leaderboard</h4>
             <ol id="leaderboardList"></ol>
         </section>
     </div>
@@ -402,7 +398,7 @@
 
         // --- Section Toggling ---
         function showSection(sectionIdToShow) {
-            const sections = ['waterSection', 'runSection']; // All sections that can be toggled
+            const sections = ['waterSection', 'runSection']; 
             const buttons = {
                 'waterSection': document.getElementById('showWaterBtn'),
                 'runSection': document.getElementById('showRunBtn')
@@ -534,7 +530,7 @@
         const cameraStreamElement = document.getElementById('cameraStream');
         const captureCanvas = document.getElementById('captureCanvas');
         const canvasContext = captureCanvas.getContext('2d');
-        const waterInputManual = document.getElementById('waterInput'); // Reference to the water input field
+        const waterInputManual = document.getElementById('waterInput'); 
 
         async function startCamera() {
             if (appState.cameraStream) {
