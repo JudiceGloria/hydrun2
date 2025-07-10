@@ -1,3 +1,897 @@
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<div id="map"></div>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydrun</title>
+    <style>
+        /* --- CSS STYLES START --- */
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #0077ff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 1.8em;
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        h3 {
+            color: #555;
+            font-size: 1.4em;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+
+        h4 {
+            color: #666;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid #e0e0e0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: calc(100% - 22px); /* Account for padding and border */
+            padding: 11px;
+            margin: 8px 0 15px 0;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            border-color: #0077ff;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #0077ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s ease;
+            width: 100%; /* Full width for consistency */
+            margin-top: 10px; /* Space above buttons */
+        }
+
+        button:hover {
+            background: #0055cc;
+        }
+
+        button:active {
+            background: #0044bb;
+        }
+
+        /* REMOVED: #map style */
+
+        .hidden {
+            display: none;
+        }
+
+        p {
+            margin-top: 15px;
+            font-size: 1.1em;
+            color: #444;
+        }
+
+        ul, ol {
+            list-style-type: none; /* Remove default list bullets */
+            padding: 0;
+            margin: 15px 0;
+        }
+
+        ul li, ol li {
+            background: #f9f9f9;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            display: flex;
+            justify-content: space-between; /* Space out content if needed */
+            align-items: center;
+        }
+
+        ol li {
+            counter-increment: leaderboard-counter;
+            padding-left: 40px; /* Space for counter */
+            position: relative;
+        }
+
+        ol li::before {
+            content: counter(leaderboard-counter) ".";
+            position: absolute;
+            left: 15px;
+            font-weight: bold;
+            color: #0077ff;
+        }
+
+        .highlight-user {
+            background: #e6f2ff; /* Light blue background for current user */
+            border-color: #0077ff;
+            font-weight: bold;
+        }
+
+        #userDisplay button {
+            display: inline-block;
+            width: auto;
+            margin-left: 15px;
+            padding: 8px 15px;
+            background: #dc3545; /* Red for logout */
+        }
+
+        #userDisplay button:hover {
+            background: #c82333;
+        }
+
+        /* Message for user feedback */
+        .feedback-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .feedback-message.show {
+            opacity: 1;
+        }
+        .feedback-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        /* Camera specific styles */
+        #cameraStream {
+            width: 100%;
+            height: auto;
+            background-color: #000;
+            border-radius: 8px;
+            display: block; /* Ensure it takes full width */
+            margin-bottom: 15px;
+        }
+        #captureCanvas {
+            display: block; /* Hidden by default, shown after capture */
+            margin-top: 15px;
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .camera-controls button {
+            margin-top: 10px;
+        }
+
+        /* New styles for section toggling */
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* Space between buttons */
+            margin-bottom: 25px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .tab-buttons button {
+            flex: 1; /* Make buttons take equal width */
+            margin-top: 0; /* Override default button margin */
+        }
+        .tab-buttons button.active {
+            background: #0055cc; /* Darker blue for active tab */
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); /* Inset shadow for active state */
+        }
+
+        /* Styles for AI Advice sections */
+        .ai-advice {
+            background-color: #e8f5e9; /* Light green background */
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #2e7d32; /* Dark green text */
+        }
+        .ai-advice h4 {
+            color: #1b5e20; /* Even darker green for heading */
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .ai-advice ul {
+            list-style-type: disc; /* Use regular bullets for lists */
+            margin-left: 20px;
+            padding-left: 0;
+        }
+        .ai-advice ul li {
+            background: none;
+            border: none;
+            padding: 5px 0;
+            margin-bottom: 5px;
+            color: #388e3c;
+        }
+
+        /* --- CSS STYLES END --- */
+    </style>
+</head>
+<body>
+    <div id="loginContainer" class="card">
+        <h2>Login to Hydrun</h2>
+        <input type="text" id="username" placeholder="Enter your name" />
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="appContainer" class="hidden">
+        <header>
+            <h1>🏃💧 Hydrun</h1>
+            <p>Welcome, <span id="userDisplay"></span> <button onclick="logout()">Logout</button></p>
+        </header>
+
+        <div class="tab-buttons">
+            <button id="showWaterBtn" onclick="showSection('waterSection')">💧 Water Tracker</button>
+            <button id="showRunBtn" onclick="showSection('runSection')">🏃 Run Tracker</button>
+        </div>
+
+        <section id="waterSection" class="card">
+            <h2>💧 Water Tracker</h2>
+            <label>Daily Goal (L): <input type="number" id="waterDailyGoal" value="2" min="0.1" step="0.1" /></label>
+            <label>Monthly Goal (L): <input type="number" id="waterMonthlyGoal" value="60" min="1" step="1" /></label>
+            <label>Add Water (L): <input type="number" id="waterInput" min="0.1" step="0.1" /></label>
+            <button onclick="logWater()">Add Water</button>
+            <p>Daily: <span id="waterDailyStatus">Drank: 0.00 L (0.0%)</span></p>
+            <p>Monthly: <span id="waterMonthlyStatus">Drank: 0.00 L (0.0%)</span></p>
+            <div id="waterFeedback" class="feedback-message hidden"></div>
+
+            <hr> <h3>📸 Camera for Water Estimation</h3>
+            <p>Use your camera to capture an image of your water container. Based on the picture, **you'll need to manually estimate** the water added or remaining and log it above.</p>
+            <button onclick="startCamera()">Start Camera</button>
+            <button onclick="captureImage()">Capture Image</button>
+            <button onclick="stopCamera()">Stop Camera</button>
+            <video id="cameraStream" autoplay playsinline class="hidden"></video>
+            <canvas id="captureCanvas" class="hidden"></canvas>
+            <div id="cameraFeedback" class="feedback-message hidden"></div>
+
+            <hr> <div class="ai-advice">
+                <h4>🧠 AI Water Advice</h4>
+                <ul>
+                    <li>**Stay consistent:** Sip water throughout the day, don't wait until you're thirsty!</li>
+                    <li>**Hydrate before meals:** Drinking a glass of water before eating can aid digestion and help manage appetite.</li>
+                    <li>**Factor in activity:** Increase your water intake when exercising or in hot weather. Aim for 0.5-1.0L per hour of moderate to intense activity.</li>
+                    <li>**Monitor urine color:** Pale yellow usually indicates good hydration. Darker urine suggests you need more water.</li>
+                    <li>**Add flavor naturally:** If plain water is boring, try adding slices of lemon, cucumber, or berries.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="runSection" class="card hidden">
+            <h2>📍 Run Tracker</h2>
+            <label>Daily Goal (km): <input type="number" id="runDailyGoal" value="5" min="0.1" step="0.1" /></label>
+            <label>Monthly Goal (L): <input type="number" id="runMonthlyGoal" value="100" min="1" step="1" /></label>
+            <button onclick="startRun()">Start Run</button>
+            <button onclick="stopRun()">Stop Run</button>
+            <p id="runStatus">Not running</p>
+            <p id="distanceDisplay">Current Run: 0.00 km</p>
+            <p>Daily: <span id="runDailyStatus">Ran: 0.00 km (0.0%)</span></p>
+            <p>Monthly: <span id="runMonthlyStatus">Ran: 0.00 km (0.0%)</span></p>
+            <p>Total Lifetime Run: <span id="totalRunDisplay">0.00 km</span></p>
+            <div id="runFeedback" class="feedback-message hidden"></div>
+
+            <hr> <div class="ai-advice">
+                <h4>🧠 AI Running Advice</h4>
+                <ul>
+                    <li>**Pre-run hydration:** Drink 500ml of water 1-2 hours before your run.</li>
+                    <li>**During long runs:** For runs over 60 minutes, consider electrolytes or sports drinks. Aim for 150-250ml every 15-20 minutes.</li>
+                    <li>**Post-run recovery:** Replenish fluids and electrolytes immediately after your run. Weigh yourself before and after a run to estimate fluid loss (1kg lost = 1 liter to replace).</li>
+                    <li>**Warm-up is key:** Always start with a dynamic warm-up to prepare your muscles and prevent injury.</li>
+                    <li>**Listen to your body:** Don't push through sharp pain. Rest and recovery are just as important as training.</li>
+                </ul>
+            </div>
+
+            <hr> <h3>👫 Friends & Leaderboard</h3>
+            <label>Add friend by username: <input type="text" id="friendName" placeholder="Friend's username" /></label>
+            <button onclick="addFriend()">Add Friend</button>
+            <div id="friendFeedback" class="feedback-message hidden"></div>
+
+            <h4>Your Friends</h4>
+            <ul id="friendList"></ul>
+
+            <h4>🏆 Leaderboard</h4>
+            <ol id="leaderboardList"></ol>
+        </section>
+    </div>
+
+    <script>
+        /* --- JAVASCRIPT LOGIC START --- */
+        // --- Centralized App State ---
+        let appState = {
+            user: {
+                username: "",
+                waterDrankDaily: 0,
+                waterDailyGoal: 2,
+                waterDrankMonthly: 0, 
+                waterMonthlyGoal: 60, 
+                runDistanceDaily: 0, 
+                runDailyGoal: 5, 
+                runDistanceMonthly: 0, 
+                runMonthlyGoal: 100, 
+                totalRunDistance: 0, 
+                friends: [],
+                lastDailyReset: new Date().toDateString(), 
+                lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString() 
+            },
+            currentRun: {
+                isActive: false,
+                segmentDistance: 0, 
+                routeCoordinates: [], // Still tracks coordinates for distance calculation
+                watchId: null, 
+                // REMOVED: map: null,
+                // REMOVED: marker: null,
+            },
+            otherRunners: [
+                { name: "Alice", totalRunDistance: 7.2 },
+                { name: "Bob", totalRunDistance: 5.5 },
+                { name: "Charlie", totalRunDistance: 6.8 },
+                { name: "Diana", totalRunDistance: 8.1 },
+                { name: "Eve", totalRunDistance: 12.3 },
+                { name: "Frank", totalRunDistance: 4.0 }
+            ],
+            cameraStream: null 
+        };
+
+        // --- Utility: Local Storage ---
+        function saveAppState() {
+            localStorage.setItem('hydrunAppState', JSON.stringify(appState.user));
+        }
+
+        function loadAppState() {
+            const storedState = localStorage.getItem('hydrunAppState');
+            if (storedState) {
+                const loadedUser = JSON.parse(storedState);
+                appState.user.username = loadedUser.username || "";
+                appState.user.waterDrankDaily = parseFloat(loadedUser.waterDrankDaily) || 0;
+                appState.user.waterDailyGoal = parseFloat(loadedUser.waterDailyGoal) || 2;
+                appState.user.waterDrankMonthly = parseFloat(loadedUser.waterDrankMonthly) || 0;
+                appState.user.waterMonthlyGoal = parseFloat(loadedUser.waterMonthlyGoal) || 60;
+                appState.user.runDistanceDaily = parseFloat(loadedUser.runDistanceDaily) || 0;
+                appState.user.runDailyGoal = parseFloat(loadedUser.runDailyGoal) || 5;
+                appState.user.runDistanceMonthly = parseFloat(loadedUser.runDistanceMonthly) || 0;
+                appState.user.runMonthlyGoal = parseFloat(loadedUser.runMonthlyGoal) || 100;
+                appState.user.totalRunDistance = parseFloat(loadedUser.totalRunDistance) || 0;
+                appState.user.friends = loadedUser.friends || [];
+                appState.user.lastDailyReset = loadedUser.lastDailyReset || new Date().toDateString();
+                appState.user.lastMonthlyReset = loadedUser.lastMonthlyReset || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString();
+            }
+            checkAndResetGoals(); 
+        }
+
+        function checkAndResetGoals() {
+            const today = new Date().toDateString();
+            const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString();
+
+            // Daily reset
+            if (appState.user.lastDailyReset !== today) {
+                console.log("Resetting daily goals...");
+                appState.user.waterDrankDaily = 0;
+                appState.user.runDistanceDaily = 0;
+                appState.user.lastDailyReset = today;
+                saveAppState(); 
+            }
+
+            // Monthly reset
+            if (appState.user.lastMonthlyReset !== thisMonthStart) {
+                console.log("Resetting monthly goals...");
+                appState.user.waterDrankMonthly = 0;
+                appState.user.runDistanceMonthly = 0;
+                appState.user.lastMonthlyReset = thisMonthStart;
+                saveAppState(); 
+            }
+        }
+
+        // --- UI Feedback Helper ---
+        function showFeedback(elementId, message, type = 'success', duration = 3000) {
+            const feedbackElement = document.getElementById(elementId);
+            feedbackElement.textContent = message;
+            feedbackElement.className = `feedback-message show ${type}`; 
+            feedbackElement.classList.remove('hidden');
+            setTimeout(() => {
+                feedbackElement.classList.add('hidden');
+                feedbackElement.classList.remove('show');
+            }, duration);
+        }
+
+        // --- Section Toggling ---
+        function showSection(sectionIdToShow) {
+            const sections = ['waterSection', 'runSection']; 
+            const buttons = {
+                'waterSection': document.getElementById('showWaterBtn'),
+                'runSection': document.getElementById('showRunBtn')
+            };
+
+            sections.forEach(id => {
+                const section = document.getElementById(id);
+                const button = buttons[id];
+
+                if (id === sectionIdToShow) {
+                    section.classList.remove('hidden');
+                    if (button) button.classList.add('active');
+                } else {
+                    section.classList.add('hidden');
+                    if (button) button.classList.remove('active');
+                }
+            });
+        }
+
+
+        // --- Core UI Management ---
+        function updateAppUI() {
+            if (appState.user.username) {
+                document.getElementById("loginContainer").classList.add("hidden");
+                document.getElementById("appContainer").classList.remove("hidden");
+                document.getElementById("userDisplay").textContent = appState.user.username;
+                
+                // Set goal input values
+                document.getElementById("waterDailyGoal").value = appState.user.waterDailyGoal;
+                document.getElementById("waterMonthlyGoal").value = appState.user.waterMonthlyGoal;
+                document.getElementById("runDailyGoal").value = appState.user.runDailyGoal;
+                document.getElementById("runMonthlyGoal").value = appState.user.runMonthlyGoal;
+
+                // Initial updates
+                updateWaterProgress();
+                updateRunProgress(); 
+                updateTotalRunDisplay();
+                updateFriendList();
+                updateLeaderboard();
+
+                // Show water section by default on app load
+                showSection('waterSection'); 
+            } else {
+                document.getElementById("loginContainer").classList.remove("hidden");
+                document.getElementById("appContainer").classList.add("hidden");
+            }
+        }
+
+        // --- Login/Logout ---
+        function login() {
+            const usernameInput = document.getElementById("username");
+            const username = usernameInput.value.trim();
+            if (!username) {
+                alert("Please enter a username.");
+                return;
+            }
+            appState.user.username = username;
+            saveAppState();
+            updateAppUI();
+        }
+
+        function logout() {
+            localStorage.removeItem('hydrunAppState'); 
+            location.reload(); 
+        }
+
+        // --- Water Tracking ---
+        function logWater() {
+            const waterInput = document.getElementById("waterInput");
+            const amount = parseFloat(waterInput.value);
+            if (!isNaN(amount) && amount > 0) {
+                appState.user.waterDrankDaily += amount;
+                appState.user.waterDrankMonthly += amount; 
+                waterInput.value = ''; 
+                saveAppState();
+                updateWaterProgress();
+                showFeedback('waterFeedback', `${amount.toFixed(2)} L of water added!`);
+            } else {
+                alert("Please enter a valid positive number for water.");
+            }
+        }
+
+        function updateWaterProgress() {
+            const dailyGoalInput = document.getElementById("waterDailyGoal");
+            const monthlyGoalInput = document.getElementById("waterMonthlyGoal");
+
+            const dailyGoal = parseFloat(dailyGoalInput.value);
+            const monthlyGoal = parseFloat(monthlyGoalInput.value);
+
+            let feedbackMessage = "";
+
+            if (!isNaN(dailyGoal) && dailyGoal > 0) {
+                if (appState.user.waterDailyGoal !== dailyGoal) {
+                    appState.user.waterDailyGoal = dailyGoal;
+                    feedbackMessage += `Daily water goal updated to ${dailyGoal.toFixed(1)} L. `;
+                }
+            } else {
+                dailyGoalInput.value = appState.user.waterDailyGoal;
+            }
+
+            if (!isNaN(monthlyGoal) && monthlyGoal > 0) {
+                if (appState.user.waterMonthlyGoal !== monthlyGoal) {
+                    appState.user.waterMonthlyGoal = monthlyGoal;
+                    feedbackMessage += `Monthly water goal updated to ${monthlyGoal.toFixed(1)} L.`;
+                }
+            } else {
+                monthlyGoalInput.value = appState.user.waterMonthlyGoal;
+            }
+
+            if (feedbackMessage) {
+                showFeedback('waterFeedback', feedbackMessage);
+            }
+
+            const dailyPercent = ((appState.user.waterDrankDaily / appState.user.waterDailyGoal) * 100).toFixed(1);
+            document.getElementById("waterDailyStatus").textContent =
+                `Drank: ${appState.user.waterDrankDaily.toFixed(2)} L (${dailyPercent}%)`;
+
+            const monthlyPercent = ((appState.user.waterDrankMonthly / appState.user.waterMonthlyGoal) * 100).toFixed(1);
+            document.getElementById("waterMonthlyStatus").textContent =
+                `Drank: ${appState.user.waterDrankMonthly.toFixed(2)} L (${monthlyPercent}%)`;
+            
+            saveAppState(); 
+        }
+
+        document.getElementById("waterDailyGoal").addEventListener('change', updateWaterProgress);
+        document.getElementById("waterMonthlyGoal").addEventListener('change', updateWaterProgress);
+
+        // --- Camera Functionality ---
+        const cameraStreamElement = document.getElementById('cameraStream');
+        const captureCanvas = document.getElementById('captureCanvas');
+        const canvasContext = captureCanvas.getContext('2d');
+        const waterInputManual = document.getElementById('waterInput'); 
+
+        async function startCamera() {
+            if (appState.cameraStream) {
+                showFeedback('cameraFeedback', 'Camera already active.', 'info');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                appState.cameraStream = stream;
+                cameraStreamElement.srcObject = stream;
+                cameraStreamElement.classList.remove('hidden');
+                captureCanvas.classList.add('hidden'); 
+                showFeedback('cameraFeedback', 'Camera started! Point it at your container, then "Capture Image".');
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                let errorMessage = 'Could not access camera.';
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errorMessage = 'Camera access denied. Please allow camera permissions.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage = 'No camera found on this device.';
+                }
+                showFeedback('cameraFeedback', errorMessage, 'error');
+            }
+        }
+
+        function captureImage() {
+            if (!appState.cameraStream) {
+                showFeedback('cameraFeedback', 'Camera not active. Please start camera first.', 'error');
+                return;
+            }
+
+            captureCanvas.width = cameraStreamElement.videoWidth;
+            captureCanvas.height = cameraStreamElement.videoHeight;
+            
+            canvasContext.drawImage(cameraStreamElement, 0, 0, captureCanvas.width, captureCanvas.height);
+            
+            captureCanvas.classList.remove('hidden');
+            cameraStreamElement.classList.add('hidden');
+            
+            showFeedback('cameraFeedback', 'Image captured! Now, based on the picture, manually estimate the water amount and use the "Add Water" button above.', 'info', 7000);
+            waterInputManual.focus(); 
+        }
+
+        function stopCamera() {
+            if (appState.cameraStream) {
+                appState.cameraStream.getTracks().forEach(track => track.stop());
+                appState.cameraStream = null;
+                cameraStreamElement.srcObject = null;
+                cameraStreamElement.classList.add('hidden');
+                captureCanvas.classList.add('hidden'); 
+                showFeedback('cameraFeedback', 'Camera stopped.', 'info');
+            } else {
+                showFeedback('cameraFeedback', 'Camera is not active.', 'info');
+            }
+        }
+
+
+        // --- Run Tracking (Geolocation only) ---
+        // REMOVED: Mapbox access token
+        // REMOVED: initMap function
+
+        function handleGeolocationError(error) {
+            let message = "An unknown geolocation error occurred.";
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "Geolocation permission denied. Cannot track run.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "Location information unavailable. Try again later.";
+                    break;
+                case error.TIMEOUT:
+                    message = "Geolocation request timed out. Check your GPS signal.";
+                    break;
+            }
+            showFeedback('runFeedback', message, 'error', 5000); 
+            document.getElementById('runStatus').textContent = 'Geolocation error. Not running.';
+            appState.currentRun.isActive = false; 
+        }
+
+
+        function startRun() {
+            if (appState.currentRun.isActive) {
+                alert("A run is already in progress!");
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                showFeedback('runFeedback', "GPS not supported by your browser.", 'error');
+                return;
+            }
+
+            // REMOVED: initMap() call
+
+            appState.currentRun.isActive = true;
+            appState.currentRun.segmentDistance = 0; 
+            appState.currentRun.routeCoordinates = []; // Keep for distance calculation
+            document.getElementById('runStatus').textContent = 'Running...';
+            document.getElementById('distanceDisplay').textContent = `Current Run: 0.00 km`;
+            showFeedback('runFeedback', 'Run started! Tracking your position...');
+
+            // Get initial position
+            navigator.geolocation.getCurrentPosition(pos => {
+                const { latitude, longitude } = pos.coords;
+                const coords = [longitude, latitude];
+                appState.currentRun.routeCoordinates.push(coords);
+            }, handleGeolocationError, { enableHighAccuracy: true });
+
+
+            appState.currentRun.watchId = navigator.geolocation.watchPosition(pos => {
+                const { latitude, longitude } = pos.coords;
+                const newCoords = [longitude, latitude];
+
+                if (appState.currentRun.routeCoordinates.length > 0) {
+                    const lastCoords = appState.currentRun.routeCoordinates[appState.currentRun.routeCoordinates.length - 1];
+                    const segmentD = getDistanceFromLatLon(lastCoords[1], lastCoords[0], newCoords[1], newCoords[0]);
+                    appState.currentRun.segmentDistance += segmentD;
+                }
+
+                appState.currentRun.routeCoordinates.push(newCoords);
+                document.getElementById('distanceDisplay').textContent = `Current Run: ${appState.currentRun.segmentDistance.toFixed(2)} km`;
+
+            }, handleGeolocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+        }
+
+        function stopRun() {
+            if (!appState.currentRun.isActive) {
+                alert("No run is currently in progress.");
+                return;
+            }
+
+            if (appState.currentRun.watchId !== null) {
+                navigator.geolocation.clearWatch(appState.currentRun.watchId);
+                appState.currentRun.watchId = null;
+            }
+
+            appState.currentRun.isActive = false;
+            document.getElementById('runStatus').textContent = 'Not running';
+            showFeedback('runFeedback', `Run stopped. Distance: ${appState.currentRun.segmentDistance.toFixed(2)} km`, 'success', 5000);
+
+            appState.user.totalRunDistance += appState.currentRun.segmentDistance;
+            appState.user.runDistanceDaily += appState.currentRun.segmentDistance; 
+            appState.user.runDistanceMonthly += appState.currentRun.segmentDistance; 
+            
+            saveAppState(); 
+            updateRunProgress(); 
+            updateTotalRunDisplay(); 
+            updateLeaderboard(); 
+
+            appState.currentRun.segmentDistance = 0;
+            appState.currentRun.routeCoordinates = [];
+            // REMOVED: Map update logic
+        }
+
+        // REMOVED: drawRoute function
+
+        function updateRunProgress() {
+            const dailyGoalInput = document.getElementById("runDailyGoal");
+            const monthlyGoalInput = document.getElementById("runMonthlyGoal");
+
+            const dailyGoal = parseFloat(dailyGoalInput.value);
+            const monthlyGoal = parseFloat(monthlyGoalInput.value);
+
+            let feedbackMessage = "";
+
+            if (!isNaN(dailyGoal) && dailyGoal > 0) {
+                if (appState.user.runDailyGoal !== dailyGoal) {
+                    appState.user.runDailyGoal = dailyGoal;
+                    feedbackMessage += `Daily run goal updated to ${dailyGoal.toFixed(1)} km. `;
+                }
+            } else {
+                dailyGoalInput.value = appState.user.runDailyGoal;
+            }
+
+            if (!isNaN(monthlyGoal) && monthlyGoal > 0) {
+                if (appState.user.runMonthlyGoal !== monthlyGoal) {
+                    appState.user.runMonthlyGoal = monthlyGoal;
+                    feedbackMessage += `Monthly run goal updated to ${monthlyGoal.toFixed(1)} km.`;
+                }
+            } else {
+                monthlyGoalInput.value = appState.user.runMonthlyGoal;
+            }
+
+            if (feedbackMessage) {
+                showFeedback('runFeedback', feedbackMessage);
+            }
+
+            const dailyPercent = ((appState.user.runDistanceDaily / appState.user.runDailyGoal) * 100).toFixed(1);
+            document.getElementById("runDailyStatus").textContent =
+                `Ran: ${appState.user.runDistanceDaily.toFixed(2)} km (${dailyPercent}%)`;
+
+            const monthlyPercent = ((appState.user.runDistanceMonthly / appState.user.runMonthlyGoal) * 100).toFixed(1);
+            document.getElementById("runMonthlyStatus").textContent =
+                `Ran: ${appState.user.runDistanceMonthly.toFixed(2)} km (${monthlyPercent}%)`;
+            
+            saveAppState(); 
+        }
+
+        document.getElementById("runDailyGoal").addEventListener('change', updateRunProgress);
+        document.getElementById("runMonthlyGoal").addEventListener('change', updateRunProgress);
+
+
+        function updateTotalRunDisplay() {
+            document.getElementById('totalRunDisplay').textContent = `${appState.user.totalRunDistance.toFixed(2)} km`;
+        }
+
+        // Haversine formula to calculate distance between two lat/lon points
+        function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of Earth in kilometers
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        // --- Friends & Leaderboard ---
+        function addFriend() {
+            const friendNameInput = document.getElementById("friendName");
+            const friendName = friendNameInput.value.trim();
+
+            if (!friendName) {
+                showFeedback('friendFeedback', "Please enter a friend's username.", 'error');
+                return;
+            }
+
+            if (friendName === appState.user.username) {
+                showFeedback('friendFeedback', `You cannot add yourself as a friend.`, 'error');
+                return;
+            }
+            if (appState.user.friends.includes(friendName)) {
+                showFeedback('friendFeedback', `"${friendName}" is already on your friends list.`, 'error');
+                return;
+            }
+            if (!appState.otherRunners.some(r => r.name === friendName)) {
+                showFeedback('friendFeedback', `"${friendName}" not found in the system.`, 'error');
+                return;
+            }
+
+            appState.user.friends.push(friendName);
+            saveAppState(); 
+            updateFriendList();
+            friendNameInput.value = ''; 
+            updateLeaderboard(); 
+            showFeedback('friendFeedback', `"${friendName}" added to your friends list!`);
+        }
+
+        function updateFriendList() {
+            const list = document.getElementById("friendList");
+            list.innerHTML = '';
+            if (appState.user.friends.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = "No friends added yet.";
+                list.appendChild(li);
+                return;
+            }
+            appState.user.friends.forEach(f => {
+                const li = document.createElement('li');
+                li.textContent = f;
+                list.appendChild(li);
+            });
+        }
+
+        function updateLeaderboard() {
+            let allRunners = [
+                { name: appState.user.username, totalRunDistance: appState.user.totalRunDistance }
+            ];
+
+            appState.otherRunners.forEach(other => {
+                // Only add "other" runners if they are not the current user and not already in the list
+                if (other.name !== appState.user.username && !allRunners.some(r => r.name === other.name)) {
+                    allRunners.push(other);
+                }
+            });
+
+            // Filter out friends from otherRunners and add them as their own entries
+            appState.user.friends.forEach(friendName => {
+                const friendData = appState.otherRunners.find(r => r.name === friendName);
+                if (friendData && !allRunners.some(r => r.name === friendName)) {
+                    allRunners.push(friendData);
+                }
+            });
+
+            allRunners.sort((a, b) => b.totalRunDistance - a.totalRunDistance);
+
+            const leaderboard = document.getElementById("leaderboardList");
+            leaderboard.innerHTML = ''; 
+
+            allRunners.forEach(runner => {
+                const li = document.createElement('li');
+                li.textContent = `${runner.name} - ${runner.totalRunDistance.toFixed(2)} km`;
+                if (runner.name === appState.user.username) {
+                    li.classList.add('highlight-user'); 
+                }
+                leaderboard.appendChild(li);
+            });
+        }
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAppState(); 
+            updateAppUI();  
+            // REMOVED: initMap() call
+        });
+        /* --- JAVASCRIPT LOGIC END --- */
+    </script>
+</body>
+</html>
