@@ -1,0 +1,117 @@
+let water = 0;
+let run = 0;
+let streak = 0;
+let lastActive = null;
+let waterGoal = 2; // Default values
+let runGoal = 5;   // Default values
+
+// Load data from local storage when the page loads
+window.onload = function() {
+    loadData();
+    updateProgress(); // Update progress based on loaded data
+};
+
+function loadData() {
+    water = parseFloat(localStorage.getItem('water')) || 0;
+    run = parseFloat(localStorage.getItem('run')) || 0;
+    streak = parseInt(localStorage.getItem('streak')) || 0;
+    lastActive = localStorage.getItem('lastActive');
+    waterGoal = parseFloat(localStorage.getItem('waterGoal')) || 2;
+    runGoal = parseFloat(localStorage.getItem('runGoal')) || 5;
+
+    // Set input field values from loaded goals
+    document.getElementById('waterGoal').value = waterGoal;
+    document.getElementById('runGoal').value = runGoal;
+    document.getElementById('yourRun').textContent = run.toFixed(1);
+
+    // Handle new day logic for streak and resetting daily activity
+    let today = new Date().toDateString();
+    if (lastActive && lastActive !== today) {
+        // If it's a new day, check if yesterday's goals were met
+        let prevWaterGoal = parseFloat(localStorage.getItem('prevWaterGoal')) || 0;
+        let prevRunGoal = parseFloat(localStorage.getItem('prevRunGoal')) || 0;
+        let prevWater = parseFloat(localStorage.getItem('prevWater')) || 0;
+        let prevRun = parseFloat(localStorage.getItem('prevRun')) || 0;
+
+        if (prevWater >= prevWaterGoal && prevRun >= prevRunGoal) {
+            streak += 1;
+        } else {
+            streak = 0; // Reset streak if goals weren't met yesterday
+        }
+        
+        // Reset daily activity for the new day
+        water = 0;
+        run = 0;
+        localStorage.setItem('water', water);
+        localStorage.setItem('run', run);
+    }
+    localStorage.setItem('lastActive', today); // Update last active date
+    document.getElementById('streakDisplay').textContent = `${streak} days`;
+}
+
+function saveData() {
+    localStorage.setItem('water', water);
+    localStorage.setItem('run', run);
+    localStorage.setItem('streak', streak);
+    localStorage.setItem('lastActive', new Date().toDateString());
+    localStorage.setItem('waterGoal', document.getElementById('waterGoal').value);
+    localStorage.setItem('runGoal', document.getElementById('runGoal').value);
+
+    // Store current day's progress for streak calculation tomorrow
+    localStorage.setItem('prevWater', water);
+    localStorage.setItem('prevRun', run);
+    localStorage.setItem('prevWaterGoal', document.getElementById('waterGoal').value);
+    localStorage.setItem('prevRunGoal', document.getElementById('runGoal').value);
+}
+
+function logWater() {
+    let input = parseFloat(document.getElementById('waterInput').value);
+    if (!isNaN(input)) {
+        water += input;
+        document.getElementById('waterInput').value = ''; // Clear input
+        updateProgress();
+        saveData();
+    }
+}
+
+function logRun() {
+    let input = parseFloat(document.getElementById('runInput').value);
+    if (!isNaN(input)) {
+        run += input;
+        document.getElementById('runInput').value = ''; // Clear input
+        updateProgress();
+        document.getElementById('yourRun').textContent = run.toFixed(1);
+        saveData();
+    }
+}
+
+function updateProgress() {
+    waterGoal = parseFloat(document.getElementById('waterGoal').value);
+    runGoal = parseFloat(document.getElementById('runGoal').value);
+
+    let waterPercent = ((water / waterGoal) * 100).toFixed(1);
+    let runPercent = ((run / runGoal) * 100).toFixed(1);
+
+    document.getElementById('progressDisplay').textContent =
+        `Water: ${water.toFixed(1)}L (${waterPercent}%) | Run: ${run.toFixed(1)} km (${runPercent}%)`;
+
+    generateTips(waterPercent, runPercent);
+    // Streak is now handled in loadData for daily rollover
+}
+
+function generateTips(waterPercent, runPercent) {
+    let tips = "";
+
+    if (waterPercent < 100) tips += "💧 Keep drinking! You're at " + waterPercent + "% of your water goal. ";
+    else tips += "✅ Great job on your water intake! ";
+
+    if (runPercent < 100) tips += "🏃 You've run " + runPercent + "% of your goal. Keep pushing!";
+    else tips += "🔥 Fantastic running today! You've crushed your goal.";
+
+    document.getElementById('aiTips').textContent = tips;
+}
+
+// Update streak display (no longer increments directly here)
+function updateStreakDisplay() {
+    document.getElementById('streakDisplay').textContent = `${streak} days`;
+}
