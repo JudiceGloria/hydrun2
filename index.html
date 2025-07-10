@@ -196,6 +196,7 @@
             background-color: #000;
             border-radius: 8px;
             display: block; /* Ensure it takes full width */
+            margin-bottom: 15px;
         }
         #captureCanvas {
             display: block; /* Hidden by default, shown after capture */
@@ -226,16 +227,18 @@
 
         <section class="card">
             <h2>💧 Water Tracker</h2>
-            <label>Daily Goal (L): <input type="number" id="waterGoal" value="2" min="0.1" step="0.1" /></label>
+            <label>Daily Goal (L): <input type="number" id="waterDailyGoal" value="2" min="0.1" step="0.1" /></label>
+            <label>Monthly Goal (L): <input type="number" id="waterMonthlyGoal" value="60" min="1" step="1" /></label>
             <label>Add Water (L): <input type="number" id="waterInput" min="0.1" step="0.1" /></label>
             <button onclick="logWater()">Add Water</button>
-            <p id="waterStatus">Drank: 0.00 L (0.0%)</p>
+            <p>Daily: <span id="waterDailyStatus">Drank: 0.00 L (0.0%)</span></p>
+            <p>Monthly: <span id="waterMonthlyStatus">Drank: 0.00 L (0.0%)</span></p>
             <div id="waterFeedback" class="feedback-message hidden"></div>
         </section>
 
         <section class="card">
             <h2>📸 Camera Water Level Estimator</h2>
-            <p>Use your camera to capture an image of your water container. You'll need to manually estimate the water level from the picture.</p>
+            <p>Use your camera to capture an image of your water container. Based on the picture, **you'll need to manually estimate** the water added or remaining and log it in the Water Tracker section.</p>
             <button onclick="startCamera()">Start Camera</button>
             <button onclick="captureImage()">Capture Image</button>
             <button onclick="stopCamera()">Stop Camera</button>
@@ -245,11 +248,15 @@
         </section>
 
         <section class="card">
-            <h2>📍 Live Run Tracker</h2>
+            <h2>📍 Run Tracker</h2>
+            <label>Daily Goal (km): <input type="number" id="runDailyGoal" value="5" min="0.1" step="0.1" /></label>
+            <label>Monthly Goal (km): <input type="number" id="runMonthlyGoal" value="100" min="1" step="1" /></label>
             <button onclick="startRun()">Start Run</button>
             <button onclick="stopRun()">Stop Run</button>
             <p id="runStatus">Not running</p>
             <p id="distanceDisplay">Current Run: 0.00 km</p>
+            <p>Daily: <span id="runDailyStatus">Ran: 0.00 km (0.0%)</span></p>
+            <p>Monthly: <span id="runMonthlyStatus">Ran: 0.00 km (0.0%)</span></p>
             <p>Total Lifetime Run: <span id="totalRunDisplay">0.00 km</span></p>
             <div id="map"></div>
             <div id="runFeedback" class="feedback-message hidden"></div>
@@ -276,10 +283,18 @@
         let appState = {
             user: {
                 username: "",
-                waterDrank: 0,
-                waterGoal: 2,
-                totalRunDistance: 0, // Accumulates all runs
-                friends: []
+                waterDrankDaily: 0,
+                waterDailyGoal: 2,
+                waterDrankMonthly: 0, // Monthly water tracking
+                waterMonthlyGoal: 60, // Monthly water goal
+                runDistanceDaily: 0, // Daily run tracking
+                runDailyGoal: 5, // Daily run goal
+                runDistanceMonthly: 0, // Monthly run tracking
+                runMonthlyGoal: 100, // Monthly run goal
+                totalRunDistance: 0, // Accumulates all runs (lifetime)
+                friends: [],
+                lastDailyReset: new Date().toDateString(), // Track last daily reset
+                lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString() // Track last monthly reset
             },
             currentRun: {
                 isActive: false,
@@ -312,10 +327,42 @@
                 const loadedUser = JSON.parse(storedState);
                 // Assign loaded values, ensuring numbers are parsed correctly
                 appState.user.username = loadedUser.username || "";
-                appState.user.waterDrank = parseFloat(loadedUser.waterDrank) || 0;
-                appState.user.waterGoal = parseFloat(loadedUser.waterGoal) || 2;
+                appState.user.waterDrankDaily = parseFloat(loadedUser.waterDrankDaily) || 0;
+                appState.user.waterDailyGoal = parseFloat(loadedUser.waterDailyGoal) || 2;
+                appState.user.waterDrankMonthly = parseFloat(loadedUser.waterDrankMonthly) || 0;
+                appState.user.waterMonthlyGoal = parseFloat(loadedUser.waterMonthlyGoal) || 60;
+                appState.user.runDistanceDaily = parseFloat(loadedUser.runDistanceDaily) || 0;
+                appState.user.runDailyGoal = parseFloat(loadedUser.runDailyGoal) || 5;
+                appState.user.runDistanceMonthly = parseFloat(loadedUser.runDistanceMonthly) || 0;
+                appState.user.runMonthlyGoal = parseFloat(loadedUser.runMonthlyGoal) || 100;
                 appState.user.totalRunDistance = parseFloat(loadedUser.totalRunDistance) || 0;
                 appState.user.friends = loadedUser.friends || [];
+                appState.user.lastDailyReset = loadedUser.lastDailyReset || new Date().toDateString();
+                appState.user.lastMonthlyReset = loadedUser.lastMonthlyReset || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString();
+            }
+            checkAndResetGoals(); // Check for daily/monthly resets on load
+        }
+
+        function checkAndResetGoals() {
+            const today = new Date().toDateString();
+            const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString();
+
+            // Daily reset
+            if (appState.user.lastDailyReset !== today) {
+                console.log("Resetting daily goals...");
+                appState.user.waterDrankDaily = 0;
+                appState.user.runDistanceDaily = 0;
+                appState.user.lastDailyReset = today;
+                saveAppState(); // Save immediately after reset
+            }
+
+            // Monthly reset
+            if (appState.user.lastMonthlyReset !== thisMonthStart) {
+                console.log("Resetting monthly goals...");
+                appState.user.waterDrankMonthly = 0;
+                appState.user.runDistanceMonthly = 0;
+                appState.user.lastMonthlyReset = thisMonthStart;
+                saveAppState(); // Save immediately after reset
             }
         }
 
@@ -337,10 +384,16 @@
                 document.getElementById("loginContainer").classList.add("hidden");
                 document.getElementById("appContainer").classList.remove("hidden");
                 document.getElementById("userDisplay").textContent = appState.user.username;
-                document.getElementById("waterGoal").value = appState.user.waterGoal;
+                
+                // Set goal input values
+                document.getElementById("waterDailyGoal").value = appState.user.waterDailyGoal;
+                document.getElementById("waterMonthlyGoal").value = appState.user.waterMonthlyGoal;
+                document.getElementById("runDailyGoal").value = appState.user.runDailyGoal;
+                document.getElementById("runMonthlyGoal").value = appState.user.runMonthlyGoal;
 
                 // Initial updates
                 updateWaterProgress();
+                updateRunProgress(); // Function for run progress
                 updateTotalRunDisplay();
                 updateFriendList();
                 updateLeaderboard();
@@ -376,7 +429,8 @@
             const waterInput = document.getElementById("waterInput");
             const amount = parseFloat(waterInput.value);
             if (!isNaN(amount) && amount > 0) {
-                appState.user.waterDrank += amount;
+                appState.user.waterDrankDaily += amount;
+                appState.user.waterDrankMonthly += amount; // Add to monthly total
                 waterInput.value = ''; // Clear input field
                 saveAppState();
                 updateWaterProgress();
@@ -387,33 +441,60 @@
         }
 
         function updateWaterProgress() {
-            const goalInput = document.getElementById("waterGoal");
-            const goal = parseFloat(goalInput.value);
-            // Only update goal if it's a valid positive number
-            if (!isNaN(goal) && goal > 0) {
-                if (appState.user.waterGoal !== goal) {
-                    appState.user.waterGoal = goal; // Update goal in state
-                    showFeedback('waterFeedback', `Daily water goal updated to ${goal.toFixed(1)} L.`);
+            const dailyGoalInput = document.getElementById("waterDailyGoal");
+            const monthlyGoalInput = document.getElementById("waterMonthlyGoal");
+
+            const dailyGoal = parseFloat(dailyGoalInput.value);
+            const monthlyGoal = parseFloat(monthlyGoalInput.value);
+
+            let feedbackMessage = "";
+
+            // Update daily goal
+            if (!isNaN(dailyGoal) && dailyGoal > 0) {
+                if (appState.user.waterDailyGoal !== dailyGoal) {
+                    appState.user.waterDailyGoal = dailyGoal;
+                    feedbackMessage += `Daily water goal updated to ${dailyGoal.toFixed(1)} L. `;
                 }
             } else {
-                // Revert to current goal if invalid input
-                goalInput.value = appState.user.waterGoal;
-                alert("Please enter a valid positive number for your water goal.");
+                dailyGoalInput.value = appState.user.waterDailyGoal;
+                // No alert here, as it might trigger on initial load with default value
             }
 
-            const percent = ((appState.user.waterDrank / appState.user.waterGoal) * 100).toFixed(1);
-            document.getElementById("waterStatus").textContent =
-                `Drank: ${appState.user.waterDrank.toFixed(2)} L (${percent}%)`;
-            saveAppState(); // Save state after progress update (including goal change)
+            // Update monthly goal
+            if (!isNaN(monthlyGoal) && monthlyGoal > 0) {
+                if (appState.user.waterMonthlyGoal !== monthlyGoal) {
+                    appState.user.waterMonthlyGoal = monthlyGoal;
+                    feedbackMessage += `Monthly water goal updated to ${monthlyGoal.toFixed(1)} L.`;
+                }
+            } else {
+                monthlyGoalInput.value = appState.user.waterMonthlyGoal;
+                // No alert here, as it might trigger on initial load with default value
+            }
+
+            if (feedbackMessage) {
+                showFeedback('waterFeedback', feedbackMessage);
+            }
+
+            const dailyPercent = ((appState.user.waterDrankDaily / appState.user.waterDailyGoal) * 100).toFixed(1);
+            document.getElementById("waterDailyStatus").textContent =
+                `Drank: ${appState.user.waterDrankDaily.toFixed(2)} L (${dailyPercent}%)`;
+
+            const monthlyPercent = ((appState.user.waterDrankMonthly / appState.user.waterMonthlyGoal) * 100).toFixed(1);
+            document.getElementById("waterMonthlyStatus").textContent =
+                `Drank: ${appState.user.waterDrankMonthly.toFixed(2)} L (${monthlyPercent}%)`;
+            
+            saveAppState(); // Save state after progress update (including goal changes)
         }
 
-        // Listen for changes on the water goal input
-        document.getElementById("waterGoal").addEventListener('change', updateWaterProgress);
+        // Listen for changes on the water goal inputs
+        document.getElementById("waterDailyGoal").addEventListener('change', updateWaterProgress);
+        document.getElementById("waterMonthlyGoal").addEventListener('change', updateWaterProgress);
 
         // --- Camera Functionality ---
         const cameraStreamElement = document.getElementById('cameraStream');
         const captureCanvas = document.getElementById('captureCanvas');
         const canvasContext = captureCanvas.getContext('2d');
+        const waterInputManual = document.getElementById('waterInput'); // Reference to the water input field
 
         async function startCamera() {
             if (appState.cameraStream) {
@@ -427,7 +508,7 @@
                 cameraStreamElement.srcObject = stream;
                 cameraStreamElement.classList.remove('hidden');
                 captureCanvas.classList.add('hidden'); // Hide canvas if stream starts
-                showFeedback('cameraFeedback', 'Camera started! Point it at your container.');
+                showFeedback('cameraFeedback', 'Camera started! Point it at your container, then "Capture Image".');
             } catch (err) {
                 console.error('Error accessing camera:', err);
                 let errorMessage = 'Could not access camera.';
@@ -456,9 +537,10 @@
             // Display the captured image and hide the live stream
             captureCanvas.classList.remove('hidden');
             cameraStreamElement.classList.add('hidden');
-            showFeedback('cameraFeedback', 'Image captured! Estimate your water level from the picture.');
-            // Optionally stop the camera stream after capturing
-            // stopCamera(); 
+            
+            // Guide the user for manual input
+            showFeedback('cameraFeedback', 'Image captured! Now, based on the picture, manually estimate the water amount and use the "Add Water" button above.', 'info', 7000);
+            waterInputManual.focus(); // Optionally focus the water input for convenience
         }
 
         function stopCamera() {
@@ -468,8 +550,8 @@
                 cameraStreamElement.srcObject = null;
                 cameraStreamElement.classList.add('hidden');
                 // Keep the captured image visible if any, or hide it if you prefer
-                // captureCanvas.classList.add('hidden');
-                showFeedback('cameraFeedback', 'Camera stopped.');
+                captureCanvas.classList.add('hidden'); // Hide canvas when stopping camera
+                showFeedback('cameraFeedback', 'Camera stopped.', 'info');
             } else {
                 showFeedback('cameraFeedback', 'Camera is not active.', 'info');
             }
@@ -600,9 +682,13 @@
             document.getElementById('runStatus').textContent = 'Not running';
             showFeedback('runFeedback', `Run stopped. Distance: ${appState.currentRun.segmentDistance.toFixed(2)} km`, 'success', 5000);
 
-            // Add this run's distance to the user's total lifetime distance
+            // Add this run's distance to the user's total lifetime, daily, and monthly distance
             appState.user.totalRunDistance += appState.currentRun.segmentDistance;
-            saveAppState(); // Save the updated total run distance
+            appState.user.runDistanceDaily += appState.currentRun.segmentDistance; // Add to daily total
+            appState.user.runDistanceMonthly += appState.currentRun.segmentDistance; // Add to monthly total
+            
+            saveAppState(); // Save the updated run distances
+            updateRunProgress(); // Update run progress displays
             updateTotalRunDisplay(); // Update lifetime display
             updateLeaderboard(); // Refresh leaderboard
 
@@ -626,6 +712,57 @@
                 });
             }
         }
+
+        function updateRunProgress() {
+            const dailyGoalInput = document.getElementById("runDailyGoal");
+            const monthlyGoalInput = document.getElementById("runMonthlyGoal");
+
+            const dailyGoal = parseFloat(dailyGoalInput.value);
+            const monthlyGoal = parseFloat(monthlyGoalInput.value);
+
+            let feedbackMessage = "";
+
+            // Update daily run goal
+            if (!isNaN(dailyGoal) && dailyGoal > 0) {
+                if (appState.user.runDailyGoal !== dailyGoal) {
+                    appState.user.runDailyGoal = dailyGoal;
+                    feedbackMessage += `Daily run goal updated to ${dailyGoal.toFixed(1)} km. `;
+                }
+            } else {
+                dailyGoalInput.value = appState.user.runDailyGoal;
+                // No alert here, as it might trigger on initial load with default value
+            }
+
+            // Update monthly run goal
+            if (!isNaN(monthlyGoal) && monthlyGoal > 0) {
+                if (appState.user.runMonthlyGoal !== monthlyGoal) {
+                    appState.user.runMonthlyGoal = monthlyGoal;
+                    feedbackMessage += `Monthly run goal updated to ${monthlyGoal.toFixed(1)} km.`;
+                }
+            } else {
+                monthlyGoalInput.value = appState.user.runMonthlyGoal;
+                // No alert here, as it might trigger on initial load with default value
+            }
+
+            if (feedbackMessage) {
+                showFeedback('runFeedback', feedbackMessage);
+            }
+
+            const dailyPercent = ((appState.user.runDistanceDaily / appState.user.runDailyGoal) * 100).toFixed(1);
+            document.getElementById("runDailyStatus").textContent =
+                `Ran: ${appState.user.runDistanceDaily.toFixed(2)} km (${dailyPercent}%)`;
+
+            const monthlyPercent = ((appState.user.runDistanceMonthly / appState.user.runMonthlyGoal) * 100).toFixed(1);
+            document.getElementById("runMonthlyStatus").textContent =
+                `Ran: ${appState.user.runDistanceMonthly.toFixed(2)} km (${monthlyPercent}%)`;
+            
+            saveAppState(); // Save state after progress update (including goal changes)
+        }
+
+        // Listen for changes on the run goal inputs
+        document.getElementById("runDailyGoal").addEventListener('change', updateRunProgress);
+        document.getElementById("runMonthlyGoal").addEventListener('change', updateRunProgress);
+
 
         function updateTotalRunDisplay() {
             document.getElementById('totalRunDisplay').textContent = `${appState.user.totalRunDistance.toFixed(2)} km`;
