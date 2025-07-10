@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hydrun</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* --- CSS STYLES START --- */
         body {
@@ -295,7 +297,8 @@
             <p>Monthly: <span id="waterMonthlyStatus">Drank: 0.00 L (0.0%)</span></p>
             <div id="waterFeedback" class="feedback-message hidden"></div>
 
-            <hr> <h3>📸 Camera for Water Estimation</h3>
+            <hr>
+            <h3>📸 Camera for Water Estimation</h3>
             <p>Use your camera to capture an image of your water container. Based on the picture, **you'll need to manually estimate** the water added or remaining and log it above.</p>
             <button onclick="startCamera()">Start Camera</button>
             <button onclick="captureImage()">Capture Image</button>
@@ -304,10 +307,10 @@
             <canvas id="captureCanvas" class="hidden"></canvas>
             <div id="cameraFeedback" class="feedback-message hidden"></div>
 
-            <hr> <div class="ai-advice">
+            <hr>
+            <div class="ai-advice">
                 <h4>🧠 AI Water Advice</h4>
-                <ul id="waterAdviceList">
-                    </ul>
+                <ul id="waterAdviceList"></ul>
             </div>
         </section>
 
@@ -317,20 +320,23 @@
             <label>Monthly Goal (L): <input type="number" id="runMonthlyGoal" value="100" min="1" step="1" /></label>
             <button onclick="startRun()">Start Run</button>
             <button onclick="stopRun()">Stop Run</button>
-            <button onclick="markMyLocation()">Mark My Location</button> <p id="runStatus">Not running</p>
+            <button onclick="markMyLocation()">Mark My Location</button>
+            <p id="runStatus">Not running</p>
             <p id="distanceDisplay">Current Run: 0.00 km</p>
             <p>Daily: <span id="runDailyStatus">Ran: 0.00 km (0.0%)</span></p>
             <p>Monthly: <span id="runMonthlyStatus">Ran: 0.00 km (0.0%)</span></p>
             <p>Total Lifetime Run: <span id="totalRunDisplay">0.00 km</span></p>
-            <div id="map"></div> <div id="runFeedback" class="feedback-message hidden"></div>
+            <div id="map"></div>
+            <div id="runFeedback" class="feedback-message hidden"></div>
 
-            <hr> <div class="ai-advice">
+            <hr>
+            <div class="ai-advice">
                 <h4>🧠 AI Running Advice</h4>
-                <ul id="runAdviceList">
-                    </ul>
+                <ul id="runAdviceList"></ul>
             </div>
 
-            <hr> <h3>👫 Friends & Leaderboard</h3>
+            <hr>
+            <h3>👫 Friends & Leaderboard</h3>
             <label>Add friend by username: <input type="text" id="friendName" placeholder="Friend's username" /></label>
             <button onclick="addFriend()">Add Friend</button>
             <div id="friendFeedback" class="feedback-message hidden"></div>
@@ -344,6 +350,7 @@
     </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-extra-markers/dist/js/leaflet.extra-markers.min.js"></script>
     <script>
         /* --- JAVASCRIPT LOGIC START --- */
         // --- Centralized App State ---
@@ -352,22 +359,22 @@
                 username: "",
                 waterDrankDaily: 0,
                 waterDailyGoal: 2,
-                waterDrankMonthly: 0, 
-                waterMonthlyGoal: 60, 
-                runDistanceDaily: 0, 
-                runDailyGoal: 5, 
-                runDistanceMonthly: 0, 
-                runMonthlyGoal: 100, 
-                totalRunDistance: 0, 
+                waterDrankMonthly: 0,
+                waterMonthlyGoal: 60,
+                runDistanceDaily: 0,
+                runDailyGoal: 5,
+                runDistanceMonthly: 0,
+                runMonthlyGoal: 100,
+                totalRunDistance: 0,
                 friends: [],
-                lastDailyReset: new Date().toDateString(), 
-                lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString() 
+                lastDailyReset: new Date().toDateString(),
+                lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString()
             },
             currentRun: {
                 isActive: false,
-                segmentDistance: 0, 
+                segmentDistance: 0,
                 routeCoordinates: [], // Stores [latitude, longitude] pairs for Leaflet
-                watchId: null, 
+                watchId: null,
                 map: null,      // Will now hold Leaflet map object
                 marker: null,   // Will now hold Leaflet marker object (for run tracking)
                 polyline: null  // To draw the path on the map
@@ -382,7 +389,7 @@
             ],
             cameraStream: null,
             // New property to store a separate "my location" marker
-            myLocationMarker: null 
+            myLocationMarker: null
         };
 
         // --- Define your arrays of tips (for dynamic display) ---
@@ -432,7 +439,7 @@
                 appState.user.lastDailyReset = loadedUser.lastDailyReset || new Date().toDateString();
                 appState.user.lastMonthlyReset = loadedUser.lastMonthlyReset || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString();
             }
-            checkAndResetGoals(); 
+            checkAndResetGoals();
         }
 
         function checkAndResetGoals() {
@@ -445,7 +452,7 @@
                 appState.user.waterDrankDaily = 0;
                 appState.user.runDistanceDaily = 0;
                 appState.user.lastDailyReset = today;
-                saveAppState(); 
+                saveAppState();
             }
 
             // Monthly reset
@@ -454,7 +461,7 @@
                 appState.user.waterDrankMonthly = 0;
                 appState.user.runDistanceMonthly = 0;
                 appState.user.lastMonthlyReset = thisMonthStart;
-                saveAppState(); 
+                saveAppState();
             }
         }
 
@@ -462,7 +469,7 @@
         function showFeedback(elementId, message, type = 'success', duration = 3000) {
             const feedbackElement = document.getElementById(elementId);
             feedbackElement.textContent = message;
-            feedbackElement.className = `feedback-message show ${type}`; 
+            feedbackElement.className = `feedback-message show ${type}`;
             feedbackElement.classList.remove('hidden');
             setTimeout(() => {
                 feedbackElement.classList.add('hidden');
@@ -505,7 +512,7 @@
 
         // --- Section Toggling ---
         function showSection(sectionIdToShow) {
-            const sections = ['waterSection', 'runSection']; 
+            const sections = ['waterSection', 'runSection'];
             const buttons = {
                 'waterSection': document.getElementById('showWaterBtn'),
                 'runSection': document.getElementById('showRunBtn')
@@ -558,7 +565,7 @@
                 document.getElementById("loginContainer").classList.add("hidden");
                 document.getElementById("appContainer").classList.remove("hidden");
                 document.getElementById("userDisplay").textContent = appState.user.username;
-                
+
                 // Set goal input values
                 document.getElementById("waterDailyGoal").value = appState.user.waterDailyGoal;
                 document.getElementById("waterMonthlyGoal").value = appState.user.waterMonthlyGoal;
@@ -567,13 +574,13 @@
 
                 // Initial updates
                 updateWaterProgress();
-                updateRunProgress(); 
+                updateRunProgress();
                 updateTotalRunDisplay();
                 updateFriendList();
                 updateLeaderboard();
 
                 // Show water section by default on app load
-                showSection('waterSection'); 
+                showSection('waterSection');
             } else {
                 document.getElementById("loginContainer").classList.remove("hidden");
                 document.getElementById("appContainer").classList.add("hidden");
@@ -594,8 +601,8 @@
         }
 
         function logout() {
-            localStorage.removeItem('hydrunAppState'); 
-            location.reload(); 
+            localStorage.removeItem('hydrunAppState');
+            location.reload();
         }
 
         // --- Water Tracking ---
@@ -604,8 +611,8 @@
             const amount = parseFloat(waterInput.value);
             if (!isNaN(amount) && amount > 0) {
                 appState.user.waterDrankDaily += amount;
-                appState.user.waterDrankMonthly += amount; 
-                waterInput.value = ''; 
+                appState.user.waterDrankMonthly += amount;
+                waterInput.value = '';
                 saveAppState();
                 updateWaterProgress();
                 showFeedback('waterFeedback', `${amount.toFixed(2)} L of water added!`);
@@ -652,8 +659,8 @@
             const monthlyPercent = ((appState.user.waterDrankMonthly / appState.user.waterMonthlyGoal) * 100).toFixed(1);
             document.getElementById("waterMonthlyStatus").textContent =
                 `Drank: ${appState.user.waterDrankMonthly.toFixed(2)} L (${monthlyPercent}%)`;
-            
-            saveAppState(); 
+
+            saveAppState();
         }
 
         document.getElementById("waterDailyGoal").addEventListener('change', updateWaterProgress);
@@ -663,7 +670,7 @@
         const cameraStreamElement = document.getElementById('cameraStream');
         const captureCanvas = document.getElementById('captureCanvas');
         const canvasContext = captureCanvas.getContext('2d');
-        const waterInputManual = document.getElementById('waterInput'); 
+        const waterInputManual = document.getElementById('waterInput');
 
         async function startCamera() {
             if (appState.cameraStream) {
@@ -676,7 +683,7 @@
                 appState.cameraStream = stream;
                 cameraStreamElement.srcObject = stream;
                 cameraStreamElement.classList.remove('hidden');
-                captureCanvas.classList.add('hidden'); 
+                captureCanvas.classList.add('hidden');
                 showFeedback('cameraFeedback', 'Camera started! Point it at your container, then "Capture Image".');
             } catch (err) {
                 console.error('Error accessing camera:', err);
@@ -698,14 +705,14 @@
 
             captureCanvas.width = cameraStreamElement.videoWidth;
             captureCanvas.height = cameraStreamElement.videoHeight;
-            
+
             canvasContext.drawImage(cameraStreamElement, 0, 0, captureCanvas.width, captureCanvas.height);
-            
+
             captureCanvas.classList.remove('hidden');
             cameraStreamElement.classList.add('hidden');
-            
+
             showFeedback('cameraFeedback', 'Image captured! Now, based on the picture, manually estimate the water amount and use the "Add Water" button above.', 'info', 7000);
-            waterInputManual.focus(); 
+            waterInputManual.focus();
         }
 
         function stopCamera() {
@@ -714,7 +721,7 @@
                 appState.cameraStream = null;
                 cameraStreamElement.srcObject = null;
                 cameraStreamElement.classList.add('hidden');
-                captureCanvas.classList.add('hidden'); 
+                captureCanvas.classList.add('hidden');
                 showFeedback('cameraFeedback', 'Camera stopped.', 'info');
             } else {
                 showFeedback('cameraFeedback', 'Camera is not active.', 'info');
@@ -725,7 +732,7 @@
         function initMap() {
             // Check if map is already initialized to prevent re-creation
             if (appState.currentRun.map) {
-                return; 
+                return;
             }
 
             // Create the map instance without a default view initially
@@ -745,226 +752,234 @@
                 // Add a temporary marker for the current position before run starts
                 // Only add if it's not the run marker
                 if (!appState.currentRun.isActive && !appState.myLocationMarker) {
-                    appState.myLocationMarker = L.marker(initialCoords, { icon: L.ExtraMarkers.icon({
-                        icon: 'fa-map-pin',
-                        markerColor: 'green', // A different color for the "my location" marker
-                        shape: 'circle',
-                        prefix: 'fa'
-                    }) }).addTo(appState.currentRun.map)
-                        .bindPopup("Your current location").openPopup();
-                } else if (appState.myLocationMarker) {
-                    appState.myLocationMarker.setLatLng(initialCoords);
+                    appState.myLocationMarker = L.marker(initialCoords, {
+                        icon: L.ExtraMarkers.icon({
+                            icon: 'fa-map-pin',
+                            markerColor: 'blue', // Blue pin for "My Location"
+                            prefix: 'fa'
+                        })
+                    }).addTo(appState.currentRun.map)
+                      .bindPopup('Your current location on load!').openPopup();
                 }
-
-            }, (error) => {
-                // Fallback to Lisbon, Portugal if geolocation fails or is denied
-                console.warn("Geolocation failed, defaulting map to Lisbon. Error:", error);
-                appState.currentRun.map.setView([38.7223, -9.1393], 13);
-                showFeedback('runFeedback', 'Could not get your location for the map. Ensure GPS is enabled.', 'error', 5000);
-            }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }); // Options for getCurrentPosition
+            }, () => {
+                // Fallback if geolocation fails for initial map view
+                appState.currentRun.map.setView([38.7223, -9.1393], 13); // Lisbon fallback
+                showFeedback('runFeedback', 'Could not get your location for map initialization. Displaying Lisbon.', 'error', 5000);
+            });
         }
 
+        // --- New: Mark My Location Function ---
+        function markMyLocation() {
+            if (!appState.currentRun.map) {
+                showFeedback('runFeedback', 'Map not initialized. Please ensure Run Tracker is active.', 'error');
+                return;
+            }
 
-        function handleGeolocationError(error) {
-            let message = "An unknown geolocation error occurred.";
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    message = "Geolocation permission denied. Cannot track run.";
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message = "Location information unavailable. Try again later.";
-                    break;
-                case error.TIMEOUT:
-                    message = "Geolocation request timed out. Check your GPS signal.";
-                    break;
-            }
-            showFeedback('runFeedback', message, 'error', 5000); 
-            document.getElementById('runStatus').textContent = 'Geolocation error. Not running.';
-            appState.currentRun.isActive = false; 
-            // Also, remove any existing marker/polyline if the run failed to start
-            if (appState.currentRun.marker) {
-                appState.currentRun.map.removeLayer(appState.currentRun.marker);
-                appState.currentRun.marker = null;
-            }
-            if (appState.currentRun.polyline) {
-                appState.currentRun.map.removeLayer(appState.currentRun.polyline);
-                appState.currentRun.polyline = null;
-            }
+            showFeedback('runFeedback', 'Requesting your current location...', 'info');
+
+            // This is where the browser will prompt the user for location permission
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    // Success callback: Permission granted and location obtained
+                    const { latitude, longitude } = position.coords;
+                    const currentLocation = [latitude, longitude];
+
+                    if (appState.myLocationMarker) {
+                        // If marker already exists, just update its position
+                        appState.myLocationMarker.setLatLng(currentLocation);
+                    } else {
+                        // Otherwise, create a new marker
+                        appState.myLocationMarker = L.marker(currentLocation, {
+                            icon: L.ExtraMarkers.icon({
+                                icon: 'fa-map-pin',
+                                markerColor: 'blue', // Blue pin for "My Location"
+                                prefix: 'fa' // Important for Font Awesome icons
+                            })
+                        }).addTo(appState.currentRun.map);
+                    }
+
+                    // Center the map on the new marker
+                    appState.currentRun.map.setView(currentLocation, appState.currentRun.map.getZoom() || 16);
+                    appState.myLocationMarker.bindPopup('Your marked location!').openPopup();
+                    showFeedback('runFeedback', `Location marked at Latitude: ${latitude.toFixed(4)}, Longitude: ${longitude.toFixed(4)}`, 'success');
+                    console.log('Manually marked location:', currentLocation);
+                },
+                (error) => {
+                    // Error callback: Permission denied or location could not be obtained
+                    let errorMessage = 'Could not mark location: ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += "Permission denied. Please allow location access in your browser settings.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += "Location information is unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += "The request to get your location timed out.";
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            errorMessage += "An unknown error occurred.";
+                            break;
+                    }
+                    showFeedback('runFeedback', errorMessage, 'error', 7000);
+                    console.error('Geolocation Error for Mark My Location:', error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
         }
 
         function startRun() {
             if (appState.currentRun.isActive) {
-                alert("A run is already in progress!");
+                showFeedback('runFeedback', 'Already running!', 'info');
                 return;
             }
 
-            if (!navigator.geolocation) {
-                showFeedback('runFeedback', "GPS not supported by your browser.", 'error');
+            if (!appState.currentRun.map) {
+                showFeedback('runFeedback', 'Map not initialized. Please ensure Run Tracker is active.', 'error');
                 return;
             }
-
-            initMap(); // Ensure map is initialized and attempts to get current position
 
             appState.currentRun.isActive = true;
-            appState.currentRun.segmentDistance = 0; 
-            appState.currentRun.routeCoordinates = []; 
+            appState.currentRun.segmentDistance = 0;
+            appState.currentRun.routeCoordinates = [];
+            showFeedback('runFeedback', 'Starting run...', 'info');
             document.getElementById('runStatus').textContent = 'Running...';
-            document.getElementById('distanceDisplay').textContent = `Current Run: 0.00 km`;
-            showFeedback('runFeedback', 'Run started! Tracking your position...');
+            document.getElementById('distanceDisplay').textContent = 'Current Run: 0.00 km';
 
-            // Remove any existing "my location" marker when a run starts
-            if (appState.myLocationMarker) {
-                appState.currentRun.map.removeLayer(appState.myLocationMarker);
-                appState.myLocationMarker = null;
-            }
             // Clear previous polyline if any
             if (appState.currentRun.polyline) {
                 appState.currentRun.map.removeLayer(appState.currentRun.polyline);
                 appState.currentRun.polyline = null;
             }
+            // Clear previous run marker if any
+            if (appState.currentRun.marker) {
+                appState.currentRun.map.removeLayer(appState.currentRun.marker);
+                appState.currentRun.marker = null;
+            }
+            // Clear the "my location" marker if it exists, as the run marker will take over
+            if (appState.myLocationMarker) {
+                appState.currentRun.map.removeLayer(appState.myLocationMarker);
+                appState.myLocationMarker = null;
+            }
 
-            // Start watching for changes in position for continuous tracking
-            appState.currentRun.watchId = navigator.geolocation.watchPosition(pos => {
-                const { latitude, longitude } = pos.coords;
-                const newCoords = [latitude, longitude]; // Leaflet uses [lat, lon]
 
-                if (appState.currentRun.routeCoordinates.length > 0) {
-                    const lastCoords = appState.currentRun.routeCoordinates[appState.currentRun.routeCoordinates.length - 1];
-                    const segmentD_accurate = getDistanceFromLatLon(lastCoords[0], lastCoords[1], newCoords[0], newCoords[1]);
-                    appState.currentRun.segmentDistance += segmentD_accurate;
+            // Start watching position
+            appState.currentRun.watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const newPoint = [latitude, longitude];
+
+                    // If this is the first point, create the marker
+                    if (!appState.currentRun.marker) {
+                        appState.currentRun.marker = L.marker(newPoint, {
+                            icon: L.ExtraMarkers.icon({
+                                icon: 'fa-person-running',
+                                markerColor: 'red', // Red pin for run tracker
+                                prefix: 'fa'
+                            })
+                        }).addTo(appState.currentRun.map);
+                        appState.currentRun.map.setView(newPoint, 16); // Center map on start
+                    } else {
+                        // Otherwise, just update marker position
+                        appState.currentRun.marker.setLatLng(newPoint);
+                    }
+
+                    // Add new point to route
+                    appState.currentRun.routeCoordinates.push(newPoint);
+
+                    // Update polyline
+                    if (appState.currentRun.polyline) {
+                        appState.currentRun.polyline.setLatLngs(appState.currentRun.routeCoordinates);
+                    } else {
+                        appState.currentRun.polyline = L.polyline(appState.currentRun.routeCoordinates, { color: 'blue', weight: 5 }).addTo(appState.currentRun.map);
+                    }
+
+                    // Center map on current location during run
+                    appState.currentRun.map.panTo(newPoint);
+
+                    // Calculate distance from previous point
+                    if (appState.currentRun.routeCoordinates.length > 1) {
+                        const prevPoint = appState.currentRun.routeCoordinates[appState.currentRun.routeCoordinates.length - 2];
+                        const distance = calculateDistance(prevPoint[0], prevPoint[1], newPoint[0], newPoint[1]);
+                        appState.currentRun.segmentDistance += distance; // Add to current run's distance
+                        document.getElementById('distanceDisplay').textContent = `Current Run: ${appState.currentRun.segmentDistance.toFixed(2)} km`;
+                    }
+
+                    console.log('Tracking:', newPoint);
+                },
+                (error) => {
+                    let errorMessage = 'Error tracking run: ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += "Location permission denied. Cannot track run.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += "Location information unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += "Location tracking timed out.";
+                            break;
+                        default:
+                            errorMessage += "An unknown error occurred.";
+                    }
+                    showFeedback('runFeedback', errorMessage, 'error', 7000);
+                    console.error('Run Tracking Geolocation Error:', error);
+                    stopRun(); // Stop the run if there's a persistent error
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000, // Increased timeout for continuous tracking
+                    maximumAge: 0
                 }
-
-                appState.currentRun.routeCoordinates.push(newCoords);
-                
-                // Update marker position or create if it doesn't exist
-                if (appState.currentRun.marker) {
-                    appState.currentRun.marker.setLatLng(newCoords);
-                } else { 
-                    // Use a custom icon for the run marker (e.g., blue for the runner)
-                    appState.currentRun.marker = L.marker(newCoords, { icon: L.ExtraMarkers.icon({
-                        icon: 'fa-running',
-                        markerColor: 'blue',
-                        shape: 'square',
-                        prefix: 'fa'
-                    }) }).addTo(appState.currentRun.map);
-                }
-                
-                appState.currentRun.map.panTo(newCoords); // Pan map to new position 
-                drawRoute();
-                document.getElementById('distanceDisplay').textContent = `Current Run: ${appState.currentRun.segmentDistance.toFixed(2)} km`;
-
-            }, handleGeolocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+            );
         }
 
         function stopRun() {
             if (!appState.currentRun.isActive) {
-                alert("No run is currently in progress.");
+                showFeedback('runFeedback', 'Not currently running.', 'info');
                 return;
             }
 
-            if (appState.currentRun.watchId !== null) {
-                navigator.geolocation.clearWatch(appState.currentRun.watchId);
-                appState.currentRun.watchId = null;
-            }
-
+            navigator.geolocation.clearWatch(appState.currentRun.watchId);
             appState.currentRun.isActive = false;
-            document.getElementById('runStatus').textContent = 'Not running';
-            showFeedback('runFeedback', `Run stopped. Distance: ${appState.currentRun.segmentDistance.toFixed(2)} km`, 'success', 5000);
 
+            appState.user.runDistanceDaily += appState.currentRun.segmentDistance;
+            appState.user.runDistanceMonthly += appState.currentRun.segmentDistance;
             appState.user.totalRunDistance += appState.currentRun.segmentDistance;
-            appState.user.runDistanceDaily += appState.currentRun.segmentDistance; 
-            appState.user.runDistanceMonthly += appState.currentRun.segmentDistance; 
-            
-            saveAppState(); 
-            updateRunProgress(); 
-            updateTotalRunDisplay(); 
-            updateLeaderboard(); 
 
-            // Reset current run tracking data
+            document.getElementById('runStatus').textContent = 'Not running';
+            document.getElementById('distanceDisplay').textContent = `Current Run: 0.00 km`; // Reset current run display
+
+            // Optionally, save the full route for review, or just the distance
+            saveAppState();
+            updateRunProgress();
+            updateTotalRunDisplay();
+            updateLeaderboard();
+            showFeedback('runFeedback', `Run stopped! Distance: ${appState.currentRun.segmentDistance.toFixed(2)} km`, 'success');
+            console.log('Run stopped. Total distance this run:', appState.currentRun.segmentDistance.toFixed(2), 'km');
+
+            // Reset current run state for the next run
             appState.currentRun.segmentDistance = 0;
-            appState.currentRun.routeCoordinates = [];
-            
-            // Clear map elements when run stops
-            if (appState.currentRun.marker) {
-                appState.currentRun.map.removeLayer(appState.currentRun.marker);
-                appState.currentRun.marker = null;
-            }
-            if (appState.currentRun.polyline) {
-                appState.currentRun.map.removeLayer(appState.currentRun.polyline);
-                appState.currentRun.polyline = null;
-            }
-            // Optionally, return the map view to a default location after the run stops
-            // For now, we'll leave it as is, but you could add:
-            // appState.currentRun.map.setView([38.7223, -9.1393], 13); // Lisbon coordinates
+            // Keep the polyline and marker on map for review until another action
+            // appState.currentRun.routeCoordinates = [];
         }
 
-        function drawRoute() {
-            if (appState.currentRun.polyline) {
-                appState.currentRun.polyline.setLatLngs(appState.currentRun.routeCoordinates);
-            } else {
-                // Create a new polyline with blue color and weight
-                appState.currentRun.polyline = L.polyline(appState.currentRun.routeCoordinates, {color: '#0077ff', weight: 4}).addTo(appState.currentRun.map);
-            }
-            // Zoom to fit the entire route if there's more than one point
-            if (appState.currentRun.routeCoordinates.length > 1) {
-                 const bounds = L.latLngBounds(appState.currentRun.routeCoordinates);
-                 appState.currentRun.map.fitBounds(bounds);
-            }
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of Earth in kilometers
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c; // Distance in km
+            return distance;
         }
-
-        // --- New Function: Mark My Location ---
-        function markMyLocation() {
-            if (!navigator.geolocation) {
-                showFeedback('runFeedback', "GPS not supported by your browser.", 'error');
-                return;
-            }
-
-            initMap(); // Ensure the map is initialized
-
-            // Clear run-specific markers/polylines if they exist
-            if (appState.currentRun.marker) {
-                appState.currentRun.map.removeLayer(appState.currentRun.marker);
-                appState.currentRun.marker = null;
-            }
-            if (appState.currentRun.polyline) {
-                appState.currentRun.map.removeLayer(appState.currentRun.polyline);
-                appState.currentRun.polyline = null;
-            }
-
-            showFeedback('runFeedback', 'Getting your current location...', 'info');
-
-            navigator.geolocation.getCurrentPosition(pos => {
-                const { latitude, longitude } = pos.coords;
-                const currentCoords = [latitude, longitude];
-
-                // Create or move the dedicated "myLocationMarker"
-                if (appState.myLocationMarker) {
-                    appState.myLocationMarker.setLatLng(currentCoords);
-                } else {
-                    appState.myLocationMarker = L.marker(currentCoords, { icon: L.ExtraMarkers.icon({
-                        icon: 'fa-map-pin', // A generic pin icon
-                        markerColor: 'orange', // Distinguish this marker
-                        shape: 'circle',
-                        prefix: 'fa'
-                    }) }).addTo(appState.currentRun.map);
-                }
-                appState.myLocationMarker.bindPopup("You are here!").openPopup();
-                appState.currentRun.map.setView(currentCoords, 16); // Center map on this new point
-
-                showFeedback('runFeedback', 'Location marked successfully!', 'success');
-            }, (error) => {
-                let message = "Could not mark your location.";
-                if (error.code === error.PERMISSION_DENIED) {
-                    message = "Permission to access location denied. Cannot mark location.";
-                } else if (error.code === error.POSITION_UNAVAILABLE) {
-                    message = "Location information unavailable. Try again.";
-                } else if (error.code === error.TIMEOUT) {
-                    message = "Request to get location timed out. Check GPS.";
-                }
-                showFeedback('runFeedback', message, 'error');
-            }, { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 });
-        }
-
 
         function updateRunProgress() {
             const dailyGoalInput = document.getElementById("runDailyGoal");
@@ -1004,271 +1019,89 @@
             const monthlyPercent = ((appState.user.runDistanceMonthly / appState.user.runMonthlyGoal) * 100).toFixed(1);
             document.getElementById("runMonthlyStatus").textContent =
                 `Ran: ${appState.user.runDistanceMonthly.toFixed(2)} km (${monthlyPercent}%)`;
-            
-            saveAppState(); 
+
+            saveAppState();
         }
 
         document.getElementById("runDailyGoal").addEventListener('change', updateRunProgress);
         document.getElementById("runMonthlyGoal").addEventListener('change', updateRunProgress);
 
-
         function updateTotalRunDisplay() {
-            document.getElementById('totalRunDisplay').textContent = `${appState.user.totalRunDistance.toFixed(2)} km`;
-        }
-
-        /**
-         * Calculates the distance between two geographical points using the Haversine formula.
-         * @param {number} lat1 Latitude of point 1 (in degrees).
-         * @param {number} lon1 Longitude of point 1 (in degrees).
-         * @param {number} lat2 Latitude of point 2 (in degrees).
-         * @param {number} lon2 Longitude of point 2 (in degrees).
-         * @returns {number} Distance in kilometers.
-         */
-        function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius of Earth in kilometers
-            const dLat = deg2rad(lat2 - lat1);
-            const dLon = deg2rad(lon2 - lon1);
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
-
-        /**
-         * Converts degrees to radians.
-         * @param {number} deg Angle in degrees.
-         * @returns {number} Angle in radians.
-         */
-        function deg2rad(deg) {
-            return deg * (Math.PI / 180);
+            document.getElementById("totalRunDisplay").textContent = `${appState.user.totalRunDistance.toFixed(2)} km`;
         }
 
         // --- Friends & Leaderboard ---
         function addFriend() {
             const friendNameInput = document.getElementById("friendName");
             const friendName = friendNameInput.value.trim();
-
             if (!friendName) {
                 showFeedback('friendFeedback', "Please enter a friend's username.", 'error');
                 return;
             }
-
             if (friendName === appState.user.username) {
-                showFeedback('friendFeedback', `You cannot add yourself as a friend.`, 'error');
-                return;
-            }
-            // Check if the friend exists in our mock 'otherRunners' data
-            if (!appState.otherRunners.some(r => r.name === friendName)) {
-                showFeedback('friendFeedback', `"${friendName}" not found in the system.`, 'error');
+                showFeedback('friendFeedback', "You can't add yourself as a friend!", 'error');
                 return;
             }
             if (appState.user.friends.includes(friendName)) {
-                showFeedback('friendFeedback', `"${friendName}" is already on your friends list.`, 'error');
+                showFeedback('friendFeedback', `${friendName} is already your friend.`, 'info');
                 return;
             }
-
             appState.user.friends.push(friendName);
-            saveAppState(); 
+            friendNameInput.value = '';
+            saveAppState();
             updateFriendList();
-            friendNameInput.value = ''; 
-            updateLeaderboard(); 
-            showFeedback('friendFeedback', `"${friendName}" added to your friends list!`);
+            showFeedback('friendFeedback', `${friendName} added to your friends!`, 'success');
         }
 
         function updateFriendList() {
-            const list = document.getElementById("friendList");
-            list.innerHTML = '';
+            const friendListElement = document.getElementById("friendList");
+            friendListElement.innerHTML = ''; // Clear existing list
             if (appState.user.friends.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = "No friends added yet.";
-                list.appendChild(li);
+                friendListElement.innerHTML = '<li>No friends added yet.</li>';
                 return;
             }
-            appState.user.friends.forEach(f => {
+            appState.user.friends.forEach(friend => {
                 const li = document.createElement('li');
-                li.textContent = f;
-                list.appendChild(li);
+                li.textContent = friend;
+                friendListElement.appendChild(li);
             });
         }
 
         function updateLeaderboard() {
-            let allRunners = [
-                { name: appState.user.username, totalRunDistance: appState.user.totalRunDistance }
-            ];
+            const leaderboardListElement = document.getElementById("leaderboardList");
+            leaderboardListElement.innerHTML = ''; // Clear existing list
 
-            appState.otherRunners.forEach(other => {
-                // Only add "other" runners if they are not the current user and not already in the list
-                if (other.name !== appState.user.username && !allRunners.some(r => r.name === other.name)) {
-                    allRunners.push(other);
-                }
+            // Combine current user and other runners, converting to array of objects
+            const allRunners = appState.otherRunners.map(runner => ({
+                name: runner.name,
+                distance: parseFloat(runner.totalRunDistance) // Ensure distance is a number
+            }));
+            // Add current user to the list
+            allRunners.push({
+                name: appState.user.username,
+                distance: parseFloat(appState.user.totalRunDistance)
             });
 
-            // Filter out friends from otherRunners and add them as their own entries
-            appState.user.friends.forEach(friendName => {
-                const friendData = appState.otherRunners.find(r => r.name === friendName);
-                if (friendData && !allRunners.some(r => r.name === friendName)) {
-                    allRunners.push(friendData);
-                }
-            });
-
-            // Sort by total run distance in descending order
-            allRunners.sort((a, b) => b.totalRunDistance - a.totalRunDistance);
-
-            const leaderboard = document.getElementById("leaderboardList");
-            leaderboard.innerHTML = ''; 
+            // Sort by total distance in descending order
+            allRunners.sort((a, b) => b.distance - a.distance);
 
             allRunners.forEach(runner => {
                 const li = document.createElement('li');
-                li.textContent = `${runner.name} - ${runner.totalRunDistance.toFixed(2)} km`;
+                li.textContent = `${runner.name}: ${runner.distance.toFixed(2)} km`;
                 if (runner.name === appState.user.username) {
-                    li.classList.add('highlight-user'); 
+                    li.classList.add('highlight-user'); // Highlight current user
                 }
-                leaderboard.appendChild(li);
+                leaderboardListElement.appendChild(li);
             });
         }
 
-        // --- Initial Load ---
+        // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadAppState(); 
-            updateAppUI();  
-            // Map initialization will now happen when the run section is shown via showSection()
+            loadAppState();
+            updateAppUI();
         });
+
         /* --- JAVASCRIPT LOGIC END --- */
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.ExtraMarkers/2.0.0/css/leaflet.extra-markers.min.css" integrity="sha512-VnS7L/0qJ90T/z4SjP0+pC5+wR2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+P2+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q5+R2+9q
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Location App</title>
-    <style>
-        /* Basic styling to make it look a bit nicer */
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        h1 {
-            color: #0056b3;
-        }
-        button {
-            padding: 12px 25px;
-            font-size: 18px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #location-info {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #e9e9e9;
-            border-radius: 8px;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            min-height: 50px; /* Ensures space even when empty */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-        .error {
-            color: #d9534f; /* Red for errors */
-            font-weight: bold;
-        }
-        .success {
-            color: #28a745; /* Green for success */
-        }
-    </style>
-</head>
-<body>
-
-    <h1>Find My Location</h1>
-    <button id="markLocationBtn">Mark My Location</button>
-    <p id="location-info">Press the button to get your location.</p>
-
-    <script>
-        // Get references to the HTML elements
-        const markLocationBtn = document.getElementById('markLocationBtn');
-        const locationInfo = document.getElementById('location-info');
-
-        // Add an event listener to the button
-        markLocationBtn.addEventListener('click', () => {
-            // Check if the Geolocation API is supported by the user's browser
-            if (navigator.geolocation) {
-                // Inform the user that the request is in progress
-                locationInfo.textContent = 'Requesting your location...';
-                locationInfo.className = ''; // Clear previous styling
-
-                // Request the current position
-                // This is where the browser will prompt the user for permission
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        // Success callback: This runs if permission is granted and location is obtained
-                        const latitude = position.coords.latitude;
-                        const longitude = position.coords.longitude;
-
-                        locationInfo.textContent = `Latitude: ${latitude}° N, Longitude: ${longitude}° E`;
-                        locationInfo.className = 'success'; // Apply success styling
-
-                        console.log('Location obtained:', { latitude, longitude });
-
-                        // --- IMPORTANT: What you do with the location next ---
-                        // At this point, you have the user's location (latitude, longitude).
-                        // You would typically use this information to:
-                        // 1. Display it on a map (e.g., using Google Maps API, Leaflet, OpenLayers).
-                        // 2. Send it to a server (if you're saving locations).
-                        // 3. Perform other location-based actions in your app.
-                        // For example, to open Google Maps with these coordinates:
-                        // window.open(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`, '_blank');
-                    },
-                    (error) => {
-                        // Error callback: This runs if permission is denied, location fails, or times out
-                        let errorMessage = 'Could not get location: ';
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage += "You denied permission for Geolocation. To use this feature, please enable location access in your browser settings for this site.";
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage += "Location information is unavailable. Your device might not be able to determine its position.";
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage += "The request to get your location timed out. Please try again or check your internet connection.";
-                                break;
-                            case error.UNKNOWN_ERROR:
-                                errorMessage += "An unknown error occurred while trying to get your location.";
-                                break;
-                        }
-                        locationInfo.className = 'error'; // Apply error styling
-                        locationInfo.textContent = errorMessage;
-                        console.error('Geolocation Error:', error);
-                    },
-                    {
-                        // Options for getCurrentPosition for better accuracy and user experience
-                        enableHighAccuracy: true, // Request the best possible accuracy (may use more battery/data)
-                        timeout: 10000,           // Maximum time in milliseconds to wait for a location (10 seconds)
-                        maximumAge: 0             // Do not use a cached position; always try to get a fresh one
-                    }
-                );
-            } else {
-                // Geolocation API is not supported by the current browser
-                locationInfo.className = 'error'; // Apply error styling
-                locationInfo.textContent = "Your browser does not support Geolocation. Please try a different browser.";
-                console.error("Geolocation is not supported by this browser.");
-            }
-        });
     </script>
 
 </body>
