@@ -1,10 +1,12 @@
-make this into a downlowd <!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hydrun</title>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
     <style>
+        /* --- CSS STYLES START --- */
         body {
             font-family: "Segoe UI", sans-serif;
             background: #f2f2f2;
@@ -165,6 +167,28 @@ make this into a downlowd <!DOCTYPE html>
         #userDisplay button:hover {
             background: #c82333;
         }
+
+        /* Message for user feedback */
+        .feedback-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .feedback-message.show {
+            opacity: 1;
+        }
+        .feedback-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        /* --- CSS STYLES END --- */
     </style>
 </head>
 <body>
@@ -186,6 +210,7 @@ make this into a downlowd <!DOCTYPE html>
             <label>Add Water (L): <input type="number" id="waterInput" min="0.1" step="0.1" /></label>
             <button onclick="logWater()">Add Water</button>
             <p id="waterStatus">Drank: 0.00 L (0.0%)</p>
+            <div id="waterFeedback" class="feedback-message hidden"></div>
         </section>
 
         <section class="card">
@@ -196,12 +221,14 @@ make this into a downlowd <!DOCTYPE html>
             <p id="distanceDisplay">Current Run: 0.00 km</p>
             <p>Total Lifetime Run: <span id="totalRunDisplay">0.00 km</span></p>
             <div id="map"></div>
+            <div id="runFeedback" class="feedback-message hidden"></div>
         </section>
 
         <section class="card">
             <h2>👫 Friends & Leaderboard</h2>
             <label>Add friend by username: <input type="text" id="friendName" placeholder="Friend's username" /></label>
             <button onclick="addFriend()">Add Friend</button>
+            <div id="friendFeedback" class="feedback-message hidden"></div>
 
             <h3>Your Friends</h3>
             <ul id="friendList"></ul>
@@ -213,6 +240,7 @@ make this into a downlowd <!DOCTYPE html>
 
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <script>
+        /* --- JAVASCRIPT LOGIC START --- */
         // --- Centralized App State ---
         let appState = {
             user: {
@@ -259,6 +287,18 @@ make this into a downlowd <!DOCTYPE html>
             }
         }
 
+        // --- UI Feedback Helper ---
+        function showFeedback(elementId, message, type = 'success', duration = 3000) {
+            const feedbackElement = document.getElementById(elementId);
+            feedbackElement.textContent = message;
+            feedbackElement.className = `feedback-message show ${type}`; // Add type for potential styling
+            feedbackElement.classList.remove('hidden');
+            setTimeout(() => {
+                feedbackElement.classList.add('hidden');
+                feedbackElement.classList.remove('show');
+            }, duration);
+        }
+
         // --- Core UI Management ---
         function updateAppUI() {
             if (appState.user.username) {
@@ -292,7 +332,10 @@ make this into a downlowd <!DOCTYPE html>
         }
 
         function logout() {
-            localStorage.removeItem('hydrunAppState'); // Clear all stored data
+            // Note: In a real application, logging out would typically clear
+            // only session-specific data, not all user progress.
+            // For this client-side demo, we reset everything.
+            localStorage.removeItem('hydrunAppState'); 
             location.reload(); // Reload the page to reset the app state and show login
         }
 
@@ -305,6 +348,7 @@ make this into a downlowd <!DOCTYPE html>
                 waterInput.value = ''; // Clear input field
                 saveAppState();
                 updateWaterProgress();
+                showFeedback('waterFeedback', `${amount.toFixed(2)} L of water added!`);
             } else {
                 alert("Please enter a valid positive number for water.");
             }
@@ -313,8 +357,19 @@ make this into a downlowd <!DOCTYPE html>
         function updateWaterProgress() {
             const goalInput = document.getElementById("waterGoal");
             const goal = parseFloat(goalInput.value);
-            appState.user.waterGoal = goal; // Update goal in state
-            const percent = ((appState.user.waterDrank / goal) * 100).toFixed(1);
+            // Only update goal if it's a valid positive number
+            if (!isNaN(goal) && goal > 0) {
+                if (appState.user.waterGoal !== goal) {
+                    appState.user.waterGoal = goal; // Update goal in state
+                    showFeedback('waterFeedback', `Daily water goal updated to ${goal.toFixed(1)} L.`);
+                }
+            } else {
+                // Revert to current goal if invalid input
+                goalInput.value = appState.user.waterGoal;
+                alert("Please enter a valid positive number for your water goal.");
+            }
+
+            const percent = ((appState.user.waterDrank / appState.user.waterGoal) * 100).toFixed(1);
             document.getElementById("waterStatus").textContent =
                 `Drank: ${appState.user.waterDrank.toFixed(2)} L (${percent}%)`;
             saveAppState(); // Save state after progress update (including goal change)
@@ -324,7 +379,9 @@ make this into a downlowd <!DOCTYPE html>
         document.getElementById("waterGoal").addEventListener('change', updateWaterProgress);
 
         // --- Run Tracking (Mapbox Integration) ---
-        mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN'; // <<< IMPORTANT: Replace with your Mapbox Public Access Token!
+        // IMPORTANT: Replace 'YOUR_MAPBOX_ACCESS_TOKEN' with your actual Mapbox Public Access Token!
+        // You can get one for free at mapbox.com
+        mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN'; 
 
         function initMap() {
             if (appState.currentRun.map) return; // Map already initialized
@@ -356,6 +413,25 @@ make this into a downlowd <!DOCTYPE html>
             });
         }
 
+        function handleGeolocationError(error) {
+            let message = "An unknown geolocation error occurred.";
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "Geolocation permission denied. Cannot track run.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "Location information unavailable. Try again later.";
+                    break;
+                case error.TIMEOUT:
+                    message = "Geolocation request timed out. Check your GPS signal.";
+                    break;
+            }
+            showFeedback('runFeedback', message, 'error', 5000); // Display error message
+            document.getElementById('runStatus').textContent = 'Geolocation error. Not running.';
+            appState.currentRun.isActive = false; // Ensure run is marked as inactive
+        }
+
+
         function startRun() {
             if (appState.currentRun.isActive) {
                 alert("A run is already in progress!");
@@ -363,7 +439,7 @@ make this into a downlowd <!DOCTYPE html>
             }
 
             if (!navigator.geolocation) {
-                alert("GPS not supported by your browser.");
+                showFeedback('runFeedback', "GPS not supported by your browser.", 'error');
                 return;
             }
 
@@ -374,6 +450,7 @@ make this into a downlowd <!DOCTYPE html>
             appState.currentRun.routeCoordinates = []; // Clear previous route
             document.getElementById('runStatus').textContent = 'Running...';
             document.getElementById('distanceDisplay').textContent = `Current Run: 0.00 km`;
+            showFeedback('runFeedback', 'Run started! Tracking your position...');
 
             // Get initial position and set map center/marker
             navigator.geolocation.getCurrentPosition(pos => {
@@ -388,7 +465,7 @@ make this into a downlowd <!DOCTYPE html>
                 }
                 appState.currentRun.routeCoordinates.push(coords);
                 drawRoute();
-            }, err => console.error("Error getting initial location:", err), { enableHighAccuracy: true });
+            }, handleGeolocationError, { enableHighAccuracy: true });
 
 
             appState.currentRun.watchId = navigator.geolocation.watchPosition(pos => {
@@ -407,7 +484,7 @@ make this into a downlowd <!DOCTYPE html>
                 drawRoute();
                 document.getElementById('distanceDisplay').textContent = `Current Run: ${appState.currentRun.segmentDistance.toFixed(2)} km`;
 
-            }, err => console.error("Error watching position:", err), { enableHighAccuracy: true });
+            }, handleGeolocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
         }
 
         function stopRun() {
@@ -423,7 +500,7 @@ make this into a downlowd <!DOCTYPE html>
 
             appState.currentRun.isActive = false;
             document.getElementById('runStatus').textContent = 'Not running';
-            alert(`Run stopped. Distance: ${appState.currentRun.segmentDistance.toFixed(2)} km`);
+            showFeedback('runFeedback', `Run stopped. Distance: ${appState.currentRun.segmentDistance.toFixed(2)} km`, 'success', 5000);
 
             // Add this run's distance to the user's total lifetime distance
             appState.user.totalRunDistance += appState.currentRun.segmentDistance;
@@ -478,11 +555,23 @@ make this into a downlowd <!DOCTYPE html>
             const friendNameInput = document.getElementById("friendName");
             const friendName = friendNameInput.value.trim();
 
-            if (!friendName) return;
+            if (!friendName) {
+                showFeedback('friendFeedback', "Please enter a friend's username.", 'error');
+                return;
+            }
 
             // Prevent adding self or duplicates
-            if (friendName === appState.user.username || appState.user.friends.includes(friendName)) {
-                alert(`Cannot add "${friendName}". Either it's you or they're already on your list.`);
+            if (friendName === appState.user.username) {
+                showFeedback('friendFeedback', `You cannot add yourself as a friend.`, 'error');
+                return;
+            }
+            if (appState.user.friends.includes(friendName)) {
+                showFeedback('friendFeedback', `"${friendName}" is already on your friends list.`, 'error');
+                return;
+            }
+            // Check if the friend exists in our simulated otherRunners
+            if (!appState.otherRunners.some(r => r.name === friendName)) {
+                showFeedback('friendFeedback', `"${friendName}" not found in the system.`, 'error');
                 return;
             }
 
@@ -491,11 +580,18 @@ make this into a downlowd <!DOCTYPE html>
             updateFriendList();
             friendNameInput.value = ''; // Clear input
             updateLeaderboard(); // Update leaderboard with new friend (if they are in otherRunners)
+            showFeedback('friendFeedback', `"${friendName}" added to your friends list!`);
         }
 
         function updateFriendList() {
             const list = document.getElementById("friendList");
             list.innerHTML = '';
+            if (appState.user.friends.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = "No friends added yet.";
+                list.appendChild(li);
+                return;
+            }
             appState.user.friends.forEach(f => {
                 const li = document.createElement('li');
                 li.textContent = f;
@@ -504,26 +600,18 @@ make this into a downlowd <!DOCTYPE html>
         }
 
         function updateLeaderboard() {
-            // Combine current user with other runners
+            // Combine current user with other runners and friends
             let allRunners = [
                 { name: appState.user.username, totalRunDistance: appState.user.totalRunDistance }
             ];
 
-            // Add other simulated runners, but only if they are not the current user's friends
+            // Add other simulated runners and friends
             appState.otherRunners.forEach(other => {
-                if (!appState.user.friends.includes(other.name) && other.name !== appState.user.username) {
+                // Ensure we don't add the current user or duplicate friends
+                if (other.name !== appState.user.username && !allRunners.some(r => r.name === other.name)) {
                     allRunners.push(other);
                 }
             });
-
-            // Add friends from the user's friends list (if their data exists in otherRunners)
-            appState.user.friends.forEach(friendName => {
-                const friendData = appState.otherRunners.find(r => r.name === friendName);
-                if (friendData) {
-                    allRunners.push(friendData);
-                }
-            });
-
 
             // Sort by totalRunDistance in descending order
             allRunners.sort((a, b) => b.totalRunDistance - a.totalRunDistance);
@@ -548,6 +636,7 @@ make this into a downlowd <!DOCTYPE html>
             updateAppUI();  // Update UI based on loaded data
             initMap();      // Initialize the map (but don't start running yet)
         });
+        /* --- JAVASCRIPT LOGIC END --- */
     </script>
 </body>
 </html>
