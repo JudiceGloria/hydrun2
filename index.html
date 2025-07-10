@@ -266,6 +266,41 @@
             color: #388e3c;
         }
 
+        /* Premium Pass Styles */
+        .premium-section {
+            background-color: #fff3e0; /* Light orange background */
+            border: 1px solid #ffe0b2;
+            color: #e65100; /* Darker orange text */
+        }
+        .premium-section h2 {
+            color: #ff6f00; /* Orange heading */
+            border-bottom-color: #ffcc80;
+        }
+        .premium-section h3 {
+            color: #e65100;
+        }
+        .premium-content {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed #ffcc80;
+        }
+        .premium-content ul {
+            list-style-type: circle; /* Different bullet for premium lists */
+            margin-left: 20px;
+            padding-left: 0;
+        }
+        .premium-content ul li {
+            background: none;
+            border: none;
+            padding: 5px 0;
+            margin-bottom: 5px;
+            color: #e65100;
+        }
+        .premium-content p {
+            color: #e65100;
+            font-style: italic;
+        }
+
         /* --- CSS STYLES END --- */
     </style>
 </head>
@@ -285,6 +320,7 @@
         <div class="tab-buttons">
             <button id="showWaterBtn" onclick="showSection('waterSection')">💧 Water Tracker</button>
             <button id="showRunBtn" onclick="showSection('runSection')">🏃 Run Tracker</button>
+            <button id="showPremiumBtn" onclick="showSection('premiumSection')">✨ Premium Pass</button>
         </div>
 
         <section id="waterSection" class="card">
@@ -347,6 +383,46 @@
             <h4>🏆 Leaderboard</h4>
             <ol id="leaderboardList"></ol>
         </section>
+
+        <section id="premiumSection" class="card premium-section hidden">
+            <h2>✨ Hydrun Premium Pass</h2>
+            <div id="premiumContent">
+                <p>Unlock advanced features for just <strong style="color: #ff6f00;">$10/month</strong>!</p>
+                <button onclick="activatePremium()">Get Premium Pass!</button>
+                <div id="premiumFeedback" class="feedback-message hidden"></div>
+            </div>
+
+            <div id="premiumFeatures" class="premium-content hidden">
+                <h3>Personalized Training Routine</h3>
+                <ul>
+                    <li>**Best Running Times:**
+                        <ul>
+                            <li>For **endurance and fat burning**, consider early morning runs (6 AM - 8 AM) before breakfast to tap into fat reserves.</li>
+                            <li>For **performance and speed**, late afternoon (4 PM - 6 PM) often aligns with peak body temperature and muscle efficiency.</li>
+                            <li>**Listen to your body** and consider your sleep cycle. Consistency is key!</li>
+                        </ul>
+                    </li>
+                    <li>**Suggested Running Routes:**
+                        <ul>
+                            <li>**Interval Training (2-3 km loop):** Find a flat path or track. Alternate 1 min fast sprint, 2 min brisk walk/jog for 20-30 mins.</li>
+                            <li>**Long Slow Distance (5-10 km loop):** Choose a scenic route with varied terrain. Maintain a conversational pace, focusing on consistent breathing.</li>
+                            <li>**Hill Repeats (0.5-1 km incline):** Find a moderate hill. Sprint up (or strong jog), walk down to recover. Repeat 5-8 times.</li>
+                            <li>**Explore new areas** using your map! Look for parks, riverside paths, or quiet residential streets.</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h3>Make Drinking Water Less Boring</h3>
+                <ul>
+                    <li>**Infused Water:** Add slices of fresh fruit (lemon, lime, orange, berries), cucumber, mint leaves, or ginger to your water. Let it steep for a few hours in the fridge.</li>
+                    <li>**Sparkling Water Mixer:** Mix plain sparkling water with a splash of fruit juice, a few berries, or a slice of citrus for a bubbly treat without excess sugar.</li>
+                    <li>**Herbal Tea (Iced or Hot):** Brew your favorite caffeine-free herbal teas (peppermint, chamomile, hibiscus) and enjoy them chilled or warm. They count towards hydration!</li>
+                    <li>**Water Challenge:** Set hourly alarms or use an app to remind you to drink. Challenge yourself to finish a certain amount by midday.</li>
+                    <li>**Flavor Droplets:** Natural flavor drops (available online or in health stores) can add a hint of taste without calories or artificial sweeteners.</li>
+                </ul>
+            </div>
+        </section>
+
     </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -367,6 +443,7 @@
                 runMonthlyGoal: 100,
                 totalRunDistance: 0,
                 friends: [],
+                isPremium: false, // NEW: Premium status
                 lastDailyReset: new Date().toDateString(),
                 lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString()
             },
@@ -436,6 +513,7 @@
                 appState.user.runMonthlyGoal = parseFloat(loadedUser.runMonthlyGoal) || 100;
                 appState.user.totalRunDistance = parseFloat(loadedUser.totalRunDistance) || 0;
                 appState.user.friends = loadedUser.friends || [];
+                appState.user.isPremium = loadedUser.isPremium || false; // Load premium status
                 appState.user.lastDailyReset = loadedUser.lastDailyReset || new Date().toDateString();
                 appState.user.lastMonthlyReset = loadedUser.lastMonthlyReset || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString();
             }
@@ -512,10 +590,11 @@
 
         // --- Section Toggling ---
         function showSection(sectionIdToShow) {
-            const sections = ['waterSection', 'runSection'];
+            const sections = ['waterSection', 'runSection', 'premiumSection']; // Include new section
             const buttons = {
                 'waterSection': document.getElementById('showWaterBtn'),
-                'runSection': document.getElementById('showRunBtn')
+                'runSection': document.getElementById('showRunBtn'),
+                'premiumSection': document.getElementById('showPremiumBtn') // New button
             };
 
             sections.forEach(id => {
@@ -525,13 +604,16 @@
                 if (id === sectionIdToShow) {
                     section.classList.remove('hidden');
                     if (button) button.classList.add('active');
-                    updateTips(id); // Call updateTips when section is shown
+                    if (id !== 'premiumSection') { // Only update tips for Water/Run sections
+                         updateTips(id);
+                    }
                 } else {
                     section.classList.add('hidden');
                     if (button) button.classList.remove('active');
                 }
             });
 
+            // Special handling for the map when run section is shown
             if (sectionIdToShow === 'runSection') {
                 initMap(); // Initialize map when run section is shown
                 if (appState.currentRun.map) {
@@ -544,6 +626,9 @@
                         // If no marker but there are route coordinates from a previous run, fit those.
                         const bounds = L.latLngBounds(appState.currentRun.routeCoordinates);
                         appState.currentRun.map.fitBounds(bounds);
+                    } else if (appState.myLocationMarker) {
+                         // If no run is active but a 'my location' marker exists, center on that
+                         appState.currentRun.map.setView(appState.myLocationMarker.getLatLng(), appState.currentRun.map.getZoom());
                     } else {
                         // If no location data, try to get current position for map initialization
                         navigator.geolocation.getCurrentPosition(pos => {
@@ -555,6 +640,8 @@
                         });
                     }
                 }
+            } else if (sectionIdToShow === 'premiumSection') {
+                updatePremiumUI(); // Update premium UI when section is shown
             }
         }
 
@@ -578,6 +665,7 @@
                 updateTotalRunDisplay();
                 updateFriendList();
                 updateLeaderboard();
+                updatePremiumUI(); // Update premium UI on app load
 
                 // Show water section by default on app load
                 showSection('waterSection');
@@ -1093,6 +1181,31 @@
                 }
                 leaderboardListElement.appendChild(li);
             });
+        }
+
+        // --- Premium Pass Logic ---
+        function activatePremium() {
+            // In a real app, this would involve a payment gateway.
+            // For now, we'll simulate success.
+            appState.user.isPremium = true;
+            saveAppState();
+            updatePremiumUI();
+            showFeedback('premiumFeedback', 'Premium Pass activated! Enjoy your exclusive content!', 'success', 5000);
+        }
+
+        function updatePremiumUI() {
+            const premiumContentDiv = document.getElementById('premiumContent');
+            const premiumFeaturesDiv = document.getElementById('premiumFeatures');
+            const premiumFeedbackDiv = document.getElementById('premiumFeedback');
+
+            if (appState.user.isPremium) {
+                premiumContentDiv.classList.add('hidden');
+                premiumFeaturesDiv.classList.remove('hidden');
+                premiumFeedbackDiv.classList.add('hidden'); // Ensure feedback is hidden if already premium
+            } else {
+                premiumContentDiv.classList.remove('hidden');
+                premiumFeaturesDiv.classList.add('hidden');
+            }
         }
 
         // --- Initialization ---
