@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hydrun</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         /* --- CSS STYLES START --- */
         body {
@@ -48,7 +49,6 @@
             margin-top: 20px;
             margin-bottom: 10px;
         }
-
 
         .card {
             background: white;
@@ -108,7 +108,14 @@
             background: #0044bb;
         }
 
-        /* REMOVED: #map style */
+        /* Style for the map container */
+        #map {
+            width: 100%;
+            height: 350px;
+            margin-top: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
 
         .hidden {
             display: none;
@@ -320,7 +327,7 @@
             <p>Daily: <span id="runDailyStatus">Ran: 0.00 km (0.0%)</span></p>
             <p>Monthly: <span id="runMonthlyStatus">Ran: 0.00 km (0.0%)</span></p>
             <p>Total Lifetime Run: <span id="totalRunDisplay">0.00 km</span></p>
-            <div id="runFeedback" class="feedback-message hidden"></div>
+            <div id="map"></div> <div id="runFeedback" class="feedback-message hidden"></div>
 
             <hr> <div class="ai-advice">
                 <h4>🧠 AI Running Advice</h4>
@@ -346,6 +353,7 @@
         </section>
     </div>
 
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         /* --- JAVASCRIPT LOGIC START --- */
         // --- Centralized App State ---
@@ -368,10 +376,11 @@
             currentRun: {
                 isActive: false,
                 segmentDistance: 0, 
-                routeCoordinates: [], // Still tracks coordinates for distance calculation
+                routeCoordinates: [], // Stores [latitude, longitude] pairs for Leaflet
                 watchId: null, 
-                // REMOVED: map: null,
-                // REMOVED: marker: null,
+                map: null,      // Will now hold Leaflet map object
+                marker: null,   // Will now hold Leaflet marker object
+                polyline: null  // To draw the path on the map
             },
             otherRunners: [
                 { name: "Alice", totalRunDistance: 7.2 },
@@ -465,6 +474,24 @@
                     if (button) button.classList.remove('active');
                 }
             });
+            // When showing the run section, ensure the map is initialized and invalidates its size
+            if (sectionIdToShow === 'runSection') {
+                initMap();
+                if (appState.currentRun.map) {
+                    // This is crucial for Leaflet maps hidden initially
+                    appState.currentRun.map.invalidateSize();
+                    // If there's a marker/polyline, center the map on it
+                    if (appState.currentRun.marker) {
+                        appState.currentRun.map.setView(appState.currentRun.marker.getLatLng(), appState.currentRun.map.getZoom());
+                    } else if (appState.currentRun.routeCoordinates.length > 0) {
+                        const bounds = L.latLngBounds(appState.currentRun.routeCoordinates);
+                        appState.currentRun.map.fitBounds(bounds);
+                    } else {
+                         // Default to Lisbon, Portugal if no previous coordinates
+                        appState.currentRun.map.setView([38.7223, -9.1393], 13);
+                    }
+                }
+            }
         }
 
 
@@ -637,10 +664,24 @@
             }
         }
 
+        // --- Run Tracking (Leaflet Integration) ---
+        function initMap() {
+            // Check if map is already initialized to prevent re-creation
+            if (appState.currentRun.map) {
+                return; 
+            }
 
-        // --- Run Tracking (Geolocation only) ---
-        // REMOVED: Mapbox access token
-        // REMOVED: initMap function
+            // Default to Lisbon, Portugal coordinates if no previous location is available
+            const defaultLat = 38.7223;
+            const defaultLon = -9.1393;
+
+            appState.currentRun.map = L.map('map').setView([defaultLat, defaultLon], 13); // Default view, will be updated by geolocation
+
+            // Add OpenStreetMap tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(appState.currentRun.map);
+        }
 
         function handleGeolocationError(error) {
             let message = "An unknown geolocation error occurred.";
@@ -658,8 +699,16 @@
             showFeedback('runFeedback', message, 'error', 5000); 
             document.getElementById('runStatus').textContent = 'Geolocation error. Not running.';
             appState.currentRun.isActive = false; 
+            // Also, remove any existing marker/polyline if the run failed to start
+            if (appState.currentRun.marker) {
+                appState.currentRun.map.removeLayer(appState.currentRun.marker);
+                appState.currentRun.marker = null;
+            }
+            if (appState.currentRun.polyline) {
+                appState.currentRun.map.removeLayer(appState.currentRun.polyline);
+                appState.currentRun.polyline = null;
+            }
         }
-
 
         function startRun() {
             if (appState.currentRun.isActive) {
@@ -672,34 +721,62 @@
                 return;
             }
 
-            // REMOVED: initMap() call
+            initMap(); // Ensure map is initialized
 
             appState.currentRun.isActive = true;
             appState.currentRun.segmentDistance = 0; 
-            appState.currentRun.routeCoordinates = []; // Keep for distance calculation
+            appState.currentRun.routeCoordinates = []; 
             document.getElementById('runStatus').textContent = 'Running...';
             document.getElementById('distanceDisplay').textContent = `Current Run: 0.00 km`;
             showFeedback('runFeedback', 'Run started! Tracking your position...');
 
+            // Clear previous polyline if any
+            if (appState.currentRun.polyline) {
+                appState.currentRun.map.removeLayer(appState.currentRun.polyline);
+                appState.currentRun.polyline = null;
+            }
+
             // Get initial position
             navigator.geolocation.getCurrentPosition(pos => {
                 const { latitude, longitude } = pos.coords;
-                const coords = [longitude, latitude];
+                const coords = [latitude, longitude]; // Leaflet uses [lat, lon]
+
+                // Set map view to current location with a good zoom level
+                appState.currentRun.map.setView(coords, 16); 
+
+                if (appState.currentRun.marker) {
+                    appState.currentRun.marker.setLatLng(coords);
+                } else {
+                    appState.currentRun.marker = L.marker(coords).addTo(appState.currentRun.map);
+                }
                 appState.currentRun.routeCoordinates.push(coords);
+                drawRoute(); // Draw initial point
             }, handleGeolocationError, { enableHighAccuracy: true });
 
-
+            // Watch for changes in position
             appState.currentRun.watchId = navigator.geolocation.watchPosition(pos => {
                 const { latitude, longitude } = pos.coords;
-                const newCoords = [longitude, latitude];
+                const newCoords = [latitude, longitude]; // Leaflet uses [lat, lon]
 
                 if (appState.currentRun.routeCoordinates.length > 0) {
                     const lastCoords = appState.currentRun.routeCoordinates[appState.currentRun.routeCoordinates.length - 1];
-                    const segmentD = getDistanceFromLatLon(lastCoords[1], lastCoords[0], newCoords[1], newCoords[0]);
-                    appState.currentRun.segmentDistance += segmentD;
+                    // Calculate distance using Leaflet's built-in `distanceTo` for consistency
+                    const segmentD = appState.currentRun.map.latLngToLayerPoint(L.latLng(lastCoords[0], lastCoords[1])).distanceTo(appState.currentRun.map.latLngToLayerPoint(L.latLng(newCoords[0], newCoords[1]))) / 1000; // Convert pixels to meters then to km
+                    
+                    // The above pixel-based calculation is not accurate for real-world distances.
+                    // Reverting to Haversine for accurate distance calculation.
+                    const segmentD_accurate = getDistanceFromLatLon(lastCoords[0], lastCoords[1], newCoords[0], newCoords[1]);
+                    appState.currentRun.segmentDistance += segmentD_accurate;
                 }
 
                 appState.currentRun.routeCoordinates.push(newCoords);
+                if (appState.currentRun.marker) {
+                    appState.currentRun.marker.setLatLng(newCoords);
+                } else { // In case marker was not created in getCurrentPosition
+                    appState.currentRun.marker = L.marker(newCoords).addTo(appState.currentRun.map);
+                }
+                appState.currentRun.map.panTo(newCoords); // Pan map to new position 
+                drawRoute();
                 document.getElementById('distanceDisplay').textContent = `Current Run: ${appState.currentRun.segmentDistance.toFixed(2)} km`;
 
             }, handleGeolocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
@@ -729,12 +806,37 @@
             updateTotalRunDisplay(); 
             updateLeaderboard(); 
 
+            // Reset current run tracking data
             appState.currentRun.segmentDistance = 0;
             appState.currentRun.routeCoordinates = [];
-            // REMOVED: Map update logic
+            
+            // Clear map elements when run stops
+            if (appState.currentRun.marker) {
+                appState.currentRun.map.removeLayer(appState.currentRun.marker);
+                appState.currentRun.marker = null;
+            }
+            if (appState.currentRun.polyline) {
+                appState.currentRun.map.removeLayer(appState.currentRun.polyline);
+                appState.currentRun.polyline = null;
+            }
+            // Optionally, return the map view to a default location after the run stops
+            // For now, we'll leave it as is, but you could add:
+            // appState.currentRun.map.setView([38.7223, -9.1393], 13); // Lisbon coordinates
         }
 
-        // REMOVED: drawRoute function
+        function drawRoute() {
+            if (appState.currentRun.polyline) {
+                appState.currentRun.polyline.setLatLngs(appState.currentRun.routeCoordinates);
+            } else {
+                // Create a new polyline with blue color and weight
+                appState.currentRun.polyline = L.polyline(appState.currentRun.routeCoordinates, {color: '#0077ff', weight: 4}).addTo(appState.currentRun.map);
+            }
+            // Zoom to fit the entire route if there's more than one point
+            if (appState.currentRun.routeCoordinates.length > 1) {
+                 const bounds = L.latLngBounds(appState.currentRun.routeCoordinates);
+                 appState.currentRun.map.fitBounds(bounds);
+            }
+        }
 
         function updateRunProgress() {
             const dailyGoalInput = document.getElementById("runDailyGoal");
@@ -786,7 +888,14 @@
             document.getElementById('totalRunDisplay').textContent = `${appState.user.totalRunDistance.toFixed(2)} km`;
         }
 
-        // Haversine formula to calculate distance between two lat/lon points
+        /**
+         * Calculates the distance between two geographical points using the Haversine formula.
+         * @param {number} lat1 Latitude of point 1 (in degrees).
+         * @param {number} lon1 Longitude of point 1 (in degrees).
+         * @param {number} lat2 Latitude of point 2 (in degrees).
+         * @param {number} lon2 Longitude of point 2 (in degrees).
+         * @returns {number} Distance in kilometers.
+         */
         function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
             const R = 6371; // Radius of Earth in kilometers
             const dLat = deg2rad(lat2 - lat1);
@@ -799,6 +908,11 @@
             return R * c;
         }
 
+        /**
+         * Converts degrees to radians.
+         * @param {number} deg Angle in degrees.
+         * @returns {number} Angle in radians.
+         */
         function deg2rad(deg) {
             return deg * (Math.PI / 180);
         }
@@ -817,12 +931,13 @@
                 showFeedback('friendFeedback', `You cannot add yourself as a friend.`, 'error');
                 return;
             }
-            if (appState.user.friends.includes(friendName)) {
-                showFeedback('friendFeedback', `"${friendName}" is already on your friends list.`, 'error');
-                return;
-            }
+            // Check if the friend exists in our mock 'otherRunners' data
             if (!appState.otherRunners.some(r => r.name === friendName)) {
                 showFeedback('friendFeedback', `"${friendName}" not found in the system.`, 'error');
+                return;
+            }
+            if (appState.user.friends.includes(friendName)) {
+                showFeedback('friendFeedback', `"${friendName}" is already on your friends list.`, 'error');
                 return;
             }
 
@@ -870,6 +985,7 @@
                 }
             });
 
+            // Sort by total run distance in descending order
             allRunners.sort((a, b) => b.totalRunDistance - a.totalRunDistance);
 
             const leaderboard = document.getElementById("leaderboardList");
@@ -889,7 +1005,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadAppState(); 
             updateAppUI();  
-            // REMOVED: initMap() call
+            // Map initialization will now happen when the run section is shown via showSection()
         });
         /* --- JAVASCRIPT LOGIC END --- */
     </script>
