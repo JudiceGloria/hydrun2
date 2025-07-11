@@ -362,6 +362,7 @@
             margin-right: 5px;
         }
 
+        /* Moved old switch styles here but they are no longer used by the timers */
         #profileSection .switch {
             position: relative;
             display: inline-block;
@@ -476,7 +477,7 @@
             <p id="runStatus">Not running</p>
             <p id="distanceDisplay">Current Run: 0.00 km</p>
             <p>Daily: <span id="runDailyStatus">Ran: 0.00 km (0.0%)</span></p>
-            <p>Monthly: <span id="runMonthlyStatus">Ran: 0.00 km (0.0%)</span></p>
+            <p>Monthly: <span id="runMonthlyStatus">Ran: 0.00 L (0.0%)</span></p>
             <p>Total Lifetime Run: <span id="totalRunDisplay">0.00 km</span></p>
             <div id="map"></div>
             <div id="runFeedback" class="feedback-message hidden"></div>
@@ -507,52 +508,41 @@
 
             <hr>
 
-            <h3>⏰ Reminders</h3>
-            <p>Get helpful nudges to stay on track!</p>
-
-            <div class="form-group">
-                <label for="waterReminderInterval">Water Reminder Interval (hours):</label>
-                <input type="number" id="waterReminderInterval" value="2" min="1" step="1" onchange="updateReminderSettings()">
+            <h3>🏃 One-Time Running Timer</h3>
+            <p>Set a custom timer for your next jog!</p>
+            <div class="timer-input-group">
+                <label for="runTimerHours">h</label>
+                <input type="number" id="runTimerHours" value="0" min="0" max="23">
+                <label for="runTimerMinutes">m</label>
+                <input type="number" id="runTimerMinutes" value="0" min="0" max="59">
+                <label for="runTimerSeconds">s</label>
+                <input type="number" id="runTimerSeconds" value="0" min="0" max="59">
             </div>
-            <div class="form-group">
-                <label for="waterRemindersToggle">Turn Water Reminders ON/OFF</label>
-                <label class="switch">
-                    <input type="checkbox" id="waterRemindersToggle" onchange="toggleWaterReminders()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div class="form-group">
-                <label for="runReminderTime">Run Reminder Time (daily):</label>
-                <input type="time" id="runReminderTime" value="17:00" onchange="updateReminderSettings()">
-            </div>
-            <div class="form-group">
-                <label for="runRemindersToggle">Turn Run Reminders ON/OFF</label>
-                <label class="switch">
-                    <input type="checkbox" id="runRemindersToggle" onchange="toggleRunReminders()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div id="reminderFeedback" class="feedback-message hidden"></div>
+            <label for="runTimerMessage">Reminder Message:</label>
+            <input type="text" id="runTimerMessage" placeholder="e.g., 'Time to run!' or 'Let's go for a jog!'" value="Time to run!">
+            <button onclick="setOneTimeRunTimerReminder()">Set Run Timer</button>
+            <p id="runTimerStatus" style="font-weight: bold; margin-top: 10px;">No run timer active.</p>
+            <button onclick="cancelOneTimeRunTimerReminder()" style="background-color: #ff9800;">Cancel Run Timer</button>
+            <div id="runTimerFeedback" class="feedback-message hidden"></div>
 
             <hr>
 
-            <h3>⏱️ One-Time Timer Reminder</h3>
-            <p>Set a custom timer for any reminder!</p>
+            <h3>💧 One-Time Water Timer</h3>
+            <p>Set a custom timer to remind yourself to drink water!</p>
             <div class="timer-input-group">
-                <label for="timerHours">h</label>
-                <input type="number" id="timerHours" value="0" min="0" max="23">
-                <label for="timerMinutes">m</label>
-                <input type="number" id="timerMinutes" value="0" min="0" max="59">
-                <label for="timerSeconds">s</label>
-                <input type="number" id="timerSeconds" value="0" min="0" max="59">
+                <label for="waterTimerHours">h</label>
+                <input type="number" id="waterTimerHours" value="0" min="0" max="23">
+                <label for="waterTimerMinutes">m</label>
+                <input type="number" id="waterTimerMinutes" value="0" min="0" max="59">
+                <label for="waterTimerSeconds">s</label>
+                <input type="number" id="waterTimerSeconds" value="0" min="0" max="59">
             </div>
-            <label for="timerMessage">Reminder Message:</label>
-            <input type="text" id="timerMessage" placeholder="e.g., 'Time to check the laundry!'">
-            <button onclick="setOneTimeTimerReminder()">Set Timer Reminder</button>
-            <p id="timerStatus" style="font-weight: bold; margin-top: 10px;">No timer active.</p>
-            <button onclick="cancelOneTimeTimerReminder()" style="background-color: #ff9800;">Cancel Timer</button>
-            <div id="timerFeedback" class="feedback-message hidden"></div>
+            <label for="waterTimerMessage">Reminder Message:</label>
+            <input type="text" id="waterTimerMessage" placeholder="e.g., 'Don't forget to drink water!'" value="Don't forget to drink water!">
+            <button onclick="setOneTimeWaterTimerReminder()">Set Water Timer</button>
+            <p id="waterTimerStatus" style="font-weight: bold; margin-top: 10px;">No water timer active.</p>
+            <button onclick="cancelOneTimeWaterTimerReminder()" style="background-color: #ff9800;">Cancel Water Timer</button>
+            <div id="waterTimerFeedback" class="feedback-message hidden"></div>
 
             <hr>
 
@@ -623,12 +613,7 @@
                 isPremium: false,
                 lastDailyReset: new Date().toDateString(),
                 lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString(),
-                waterRemindersEnabled: false,
-                runRemindersEnabled: false,
-                waterReminderIntervalHours: 2,
-                runReminderTime: "17:00",
-                lastWaterReminderSent: null,
-                lastRunReminderSent: null
+                // Removed waterRemindersEnabled, runRemindersEnabled, waterReminderIntervalHours, runReminderTime, lastWaterReminderSent, lastRunReminderSent
             },
             currentRun: {
                 isActive: false,
@@ -649,11 +634,12 @@
             ],
             cameraStream: null,
             myLocationMarker: null,
-            waterReminderIntervalId: null,
-            runReminderCheckIntervalId: null,
-            // NEW: Timer-specific state
-            oneTimeTimerId: null,
-            oneTimeTimerEndTime: null // To store when the timer is due
+            // NEW: Timer-specific state for RUNNING
+            oneTimeRunTimerId: null,
+            oneTimeRunTimerEndTime: null, // To store when the run timer is due
+            // NEW: Timer-specific state for WATER
+            oneTimeWaterTimerId: null,
+            oneTimeWaterTimerEndTime: null // To store when the water timer is due
         };
 
         // --- Define your arrays of tips (for dynamic display) ---
@@ -683,10 +669,14 @@
         // --- Utility: Local Storage ---
         function saveAppState() {
             localStorage.setItem('hydrunAppState', JSON.stringify(appState.user));
-            // Save timer state separately as it's not part of the user's *profile* but an active session
-            localStorage.setItem('hydrunTimerState', JSON.stringify({
-                oneTimeTimerId: appState.oneTimeTimerId !== null ? 'active' : null, // Just indicate if active
-                oneTimeTimerEndTime: appState.oneTimeTimerEndTime
+            // Save timer states separately
+            localStorage.setItem('hydrunRunTimerState', JSON.stringify({
+                oneTimeRunTimerId: appState.oneTimeRunTimerId !== null ? 'active' : null,
+                oneTimeRunTimerEndTime: appState.oneTimeRunTimerEndTime
+            }));
+            localStorage.setItem('hydrunWaterTimerState', JSON.stringify({
+                oneTimeWaterTimerId: appState.oneTimeWaterTimerId !== null ? 'active' : null,
+                oneTimeWaterTimerEndTime: appState.oneTimeWaterTimerEndTime
             }));
         }
 
@@ -709,34 +699,27 @@
                 appState.user.isPremium = loadedUser.isPremium || false;
                 appState.user.lastDailyReset = loadedUser.lastDailyReset || new Date().toDateString();
                 appState.user.lastMonthlyReset = loadedUser.lastMonthlyReset || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString();
-                appState.user.waterRemindersEnabled = loadedUser.waterRemindersEnabled || false;
-                appState.user.runRemindersEnabled = loadedUser.runRemindersEnabled || false;
-                appState.user.waterReminderIntervalHours = parseFloat(loadedUser.waterReminderIntervalHours) || 2;
-                appState.user.runReminderTime = loadedUser.runReminderTime || "17:00";
-                appState.user.lastWaterReminderSent = loadedUser.lastWaterReminderSent;
-                appState.user.lastRunReminderSent = loadedUser.lastRunReminderSent;
             }
 
-            // Load timer state
-            const storedTimer = localStorage.getItem('hydrunTimerState');
-            if (storedTimer) {
-                const loadedTimer = JSON.parse(storedTimer);
-                // If a timer was active, attempt to re-establish it (though setTimeout doesn't persist across refreshes)
-                // We'll just update the display based on endTime. The actual setTimeout will need to be re-created manually.
-                appState.oneTimeTimerEndTime = loadedTimer.oneTimeTimerEndTime;
-                if (appState.oneTimeTimerEndTime && new Date(appState.oneTimeTimerEndTime) > new Date()) {
-                    // If the end time is in the future, we can try to re-set the timer
-                    const remainingTime = new Date(appState.oneTimeTimerEndTime).getTime() - new Date().getTime();
-                    if (remainingTime > 0) {
-                        setVisualTimer(remainingTime); // Only update visual, actual reminder is in setOneTimeTimerReminder
-                    } else {
-                        // Timer expired while app was closed
-                        appState.oneTimeTimerEndTime = null;
-                        localStorage.removeItem('hydrunTimerState');
-                    }
-                } else {
-                    appState.oneTimeTimerEndTime = null;
-                    localStorage.removeItem('hydrunTimerState');
+            // Load Run Timer state
+            const storedRunTimer = localStorage.getItem('hydrunRunTimerState');
+            if (storedRunTimer) {
+                const loadedRunTimer = JSON.parse(storedRunTimer);
+                appState.oneTimeRunTimerEndTime = loadedRunTimer.oneTimeRunTimerEndTime;
+                if (appState.oneTimeRunTimerEndTime && new Date(appState.oneTimeRunTimerEndTime) <= new Date()) {
+                    appState.oneTimeRunTimerEndTime = null; // Clear if expired
+                    localStorage.removeItem('hydrunRunTimerState');
+                }
+            }
+
+            // Load Water Timer state
+            const storedWaterTimer = localStorage.getItem('hydrunWaterTimerState');
+            if (storedWaterTimer) {
+                const loadedWaterTimer = JSON.parse(storedWaterTimer);
+                appState.oneTimeWaterTimerEndTime = loadedWaterTimer.oneTimeWaterTimerEndTime;
+                if (appState.oneTimeWaterTimerEndTime && new Date(appState.oneTimeWaterTimerEndTime) <= new Date()) {
+                    appState.oneTimeWaterTimerEndTime = null; // Clear if expired
+                    localStorage.removeItem('hydrunWaterTimerState');
                 }
             }
             checkAndResetGoals();
@@ -752,10 +735,6 @@
                 appState.user.waterDrankDaily = 0;
                 appState.user.runDistanceDaily = 0;
                 appState.user.lastDailyReset = today;
-                // Important: Reset lastRunReminderSent if it was for a previous day
-                if (appState.user.lastRunReminderSent !== today) {
-                     appState.user.lastRunReminderSent = null;
-                }
                 saveAppState();
             }
 
@@ -837,7 +816,8 @@
                         updatePremiumUI();
                     } else if (id === 'profileSection') {
                         updateProfileUI();
-                        updateTimerUI(); // Update timer UI when profile is shown
+                        updateRunTimerUI(); // Update run timer UI when profile is shown
+                        updateWaterTimerUI(); // Update water timer UI when profile is shown
                     }
                 } else {
                     section.classList.add('hidden');
@@ -888,20 +868,7 @@
                 updateFriendList();
                 updateLeaderboard();
                 updatePremiumUI();
-                updateProfileUI();
-                updateTimerUI(); // Initial update for timer UI
-
-                if (appState.user.waterRemindersEnabled) {
-                    startWaterReminderInterval();
-                }
-                if (appState.user.runRemindersEnabled) {
-                    startRunReminderInterval();
-                }
-
-                // If a timer was set before refresh, try to restart its visual countdown
-                if (appState.oneTimeTimerEndTime && new Date(appState.oneTimeTimerEndTime) > new Date()) {
-                    setVisualTimer(new Date(appState.oneTimeTimerEndTime).getTime() - new Date().getTime());
-                }
+                updateProfileUI(); // Calls individual timer UIs
 
                 showSection('waterSection');
             } else {
@@ -930,12 +897,12 @@
         }
 
         function logout() {
-            stopWaterReminderInterval();
-            stopRunReminderInterval();
-            cancelOneTimeTimerReminder(); // Cancel any active timer on logout
+            cancelOneTimeRunTimerReminder(); // Cancel any active run timer on logout
+            cancelOneTimeWaterTimerReminder(); // Cancel any active water timer on logout
 
             localStorage.removeItem('hydrunAppState');
-            localStorage.removeItem('hydrunTimerState'); // Clear timer state too
+            localStorage.removeItem('hydrunRunTimerState'); // Clear run timer state
+            localStorage.removeItem('hydrunWaterTimerState'); // Clear water timer state
             location.reload();
         }
 
@@ -1426,34 +1393,15 @@
             document.getElementById('profileUsernameDisplay').textContent = appState.user.username;
             document.getElementById('profileEmailDisplay').textContent = appState.user.email;
 
-            document.getElementById('waterReminderInterval').value = appState.user.waterReminderIntervalHours;
-            document.getElementById('runReminderTime').value = appState.user.runReminderTime;
-            document.getElementById('waterRemindersToggle').checked = appState.user.waterRemindersEnabled;
-            document.getElementById('runRemindersToggle').checked = appState.user.runRemindersEnabled;
-            updateTimerUI(); // Ensure timer UI is updated
+            // Call individual timer UI updates
+            updateRunTimerUI();
+            updateWaterTimerUI();
         }
 
-        function updateReminderSettings() {
-            appState.user.waterReminderIntervalHours = parseFloat(document.getElementById('waterReminderInterval').value) || 2;
-            appState.user.runReminderTime = document.getElementById('runReminderTime').value || "17:00";
-            saveAppState();
-            showFeedback('reminderFeedback', 'Reminder settings updated.', 'success', 2000);
-
-            if (appState.user.waterRemindersEnabled) {
-                stopWaterReminderInterval();
-                startWaterReminderInterval();
-            }
-            if (appState.user.runRemindersEnabled) {
-                stopRunReminderInterval();
-                startRunReminderInterval();
-            }
-        }
-
-
-        // --- Reminder System ---
+        // --- Notification Permission Helper ---
         async function requestNotificationPermission(callback) {
             if (!("Notification" in window)) {
-                showFeedback('reminderFeedback', "This browser does not support desktop notifications.", 'error');
+                showFeedback('runTimerFeedback', "This browser does not support desktop notifications.", 'error'); // Using run timer feedback for general
                 if (callback) callback(false);
                 return false;
             }
@@ -1466,269 +1414,145 @@
             if (Notification.permission !== "denied") {
                 const permission = await Notification.requestPermission();
                 if (permission === "granted") {
-                    showFeedback('reminderFeedback', "Notification permission granted!", 'success');
+                    showFeedback('runTimerFeedback', "Notification permission granted!", 'success');
                     if (callback) callback(true);
                     return true;
                 } else {
-                    showFeedback('reminderFeedback', "Notification permission denied. Reminders cannot be sent.", 'error');
+                    showFeedback('runTimerFeedback', "Notification permission denied. Timers cannot send notifications.", 'error');
                     if (callback) callback(false);
                     return false;
                 }
             } else {
-                showFeedback('reminderFeedback', "Notification permission was denied. Please enable it in your browser settings.", 'error', 7000);
+                showFeedback('runTimerFeedback', "Notification permission was denied. Please enable it in your browser settings.", 'error', 7000);
                 if (callback) callback(false);
                 return false;
             }
         }
 
-        function sendWaterReminder() {
-            const now = new Date();
-            const intervalHours = appState.user.waterReminderIntervalHours;
-            const lastSent = appState.user.lastWaterReminderSent ? new Date(appState.user.lastWaterReminderSent) : null;
+        // --- NEW: One-Time Run Timer Functions ---
+        let runTimerCountdownInterval = null; // To hold the setInterval ID for the visual countdown
 
-            if (lastSent && (now.getTime() - lastSent.getTime() < intervalHours * 60 * 60 * 1000)) {
-                return;
-            }
-
-            const currentHour = now.getHours();
-            if (currentHour < 8 || currentHour > 22) {
-                return;
-            }
-
-            new Notification("💧 Hydrun: Time to Hydrate!", {
-                body: "Don't forget to drink some water to reach your daily goal!",
-                icon: 'https://via.placeholder.com/64/0077ff/ffffff?text=💧',
-                renotify: true,
-                tag: 'water-reminder'
-            });
-            appState.user.lastWaterReminderSent = now.toISOString();
-            saveAppState();
-            console.log("Water reminder sent!");
-        }
-
-        function sendRunReminder() {
-            const now = new Date();
-            const todayDateString = now.toDateString();
-            const [targetHour, targetMinute] = appState.user.runReminderTime.split(':').map(Number);
-
-            if (appState.user.lastRunReminderSent === todayDateString) {
-                return;
-            }
-
-            if (now.getHours() === targetHour && now.getMinutes() >= targetMinute && now.getMinutes() < targetMinute + 1) {
-                if (appState.user.runDistanceDaily < appState.user.runDailyGoal) {
-                    new Notification("🏃 Hydrun: Time for a Run!", {
-                        body: `Your daily run goal is ${appState.user.runDailyGoal} km. You've only run ${appState.user.runDistanceDaily.toFixed(2)} km today. Let's go!`,
-                        icon: 'https://via.placeholder.com/64/0077ff/ffffff?text=🏃',
-                        renotify: true,
-                        tag: 'run-reminder'
-                    });
-                    appState.user.lastRunReminderSent = todayDateString;
-                    saveAppState();
-                    console.log("Run reminder sent!");
-                } else {
-                    console.log("Run goal already met for today, no reminder needed.");
-                    appState.user.lastRunReminderSent = todayDateString;
-                    saveAppState();
-                }
-            }
-        }
-
-        function startWaterReminderInterval() {
-            stopWaterReminderInterval();
-            appState.waterReminderIntervalId = setInterval(sendWaterReminder, 15 * 60 * 1000); // Check every 15 mins
-            console.log("Water reminder interval started.");
-        }
-
-        function stopWaterReminderInterval() {
-            if (appState.waterReminderIntervalId) {
-                clearInterval(appState.waterReminderIntervalId);
-                appState.waterReminderIntervalId = null;
-                console.log("Water reminder interval stopped.");
-            }
-        }
-
-        function startRunReminderInterval() {
-            stopRunReminderInterval();
-            appState.runReminderCheckIntervalId = setInterval(sendRunReminder, 60 * 1000); // Check every minute
-            console.log("Run reminder interval started.");
-        }
-
-        function stopRunReminderInterval() {
-            if (appState.runReminderCheckIntervalId) {
-                clearInterval(appState.runReminderCheckIntervalId);
-                appState.runReminderCheckIntervalId = null;
-                console.log("Run reminder interval stopped.");
-            }
-        }
-
-        function toggleWaterReminders() {
-            const toggle = document.getElementById('waterRemindersToggle');
-            if (toggle.checked) {
-                requestNotificationPermission((granted) => {
-                    if (granted) {
-                        appState.user.waterRemindersEnabled = true;
-                        startWaterReminderInterval();
-                        saveAppState();
-                        showFeedback('reminderFeedback', 'Water reminders are ON.');
-                    } else {
-                        toggle.checked = false;
-                        appState.user.waterRemindersEnabled = false;
-                        saveAppState();
-                    }
-                });
-            } else {
-                appState.user.waterRemindersEnabled = false;
-                stopWaterReminderInterval();
-                saveAppState();
-                showFeedback('reminderFeedback', 'Water reminders are OFF.');
-            }
-        }
-
-        function toggleRunReminders() {
-            const toggle = document.getElementById('runRemindersToggle');
-            if (toggle.checked) {
-                requestNotificationPermission((granted) => {
-                    if (granted) {
-                        appState.user.runRemindersEnabled = true;
-                        startRunReminderInterval();
-                        saveAppState();
-                        showFeedback('reminderFeedback', 'Run reminders are ON.');
-                    } else {
-                        toggle.checked = false;
-                        appState.user.runRemindersEnabled = false;
-                        saveAppState();
-                    }
-                });
-            } else {
-                appState.user.runRemindersEnabled = false;
-                stopRunReminderInterval();
-                saveAppState();
-                showFeedback('reminderFeedback', 'Run reminders are OFF.');
-            }
-        }
-
-        // --- NEW: One-Time Timer Reminder Functions ---
-        let timerCountdownInterval = null; // To hold the setInterval ID for the visual countdown
-
-        function setOneTimeTimerReminder() {
-            const hours = parseInt(document.getElementById('timerHours').value) || 0;
-            const minutes = parseInt(document.getElementById('timerMinutes').value) || 0;
-            const seconds = parseInt(document.getElementById('timerSeconds').value) || 0;
-            const message = document.getElementById('timerMessage').value.trim();
+        function setOneTimeRunTimerReminder() {
+            const hours = parseInt(document.getElementById('runTimerHours').value) || 0;
+            const minutes = parseInt(document.getElementById('runTimerMinutes').value) || 0;
+            const seconds = parseInt(document.getElementById('runTimerSeconds').value) || 0;
+            const message = document.getElementById('runTimerMessage').value.trim();
 
             const totalMilliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000;
 
             if (totalMilliseconds <= 0) {
-                showFeedback('timerFeedback', 'Please enter a valid time (hours, minutes, or seconds).', 'error');
+                showFeedback('runTimerFeedback', 'Please enter a valid time (hours, minutes, or seconds).', 'error');
                 return;
             }
             if (!message) {
-                showFeedback('timerFeedback', 'Please enter a reminder message.', 'error');
+                showFeedback('runTimerFeedback', 'Please enter a reminder message.', 'error');
                 return;
             }
-            if (appState.oneTimeTimerId) {
-                showFeedback('timerFeedback', 'A timer is already active. Cancel it first to set a new one.', 'info');
+            if (appState.oneTimeRunTimerId) {
+                showFeedback('runTimerFeedback', 'A run timer is already active. Cancel it first to set a new one.', 'info');
                 return;
             }
 
             requestNotificationPermission(async (granted) => {
                 if (granted) {
-                    showFeedback('timerFeedback', 'Timer set! You will be notified shortly.', 'success');
+                    showFeedback('runTimerFeedback', 'Run timer set! You will be notified shortly.', 'success');
 
-                    appState.oneTimeTimerId = setTimeout(() => {
-                        new Notification("⏱️ Hydrun Timer!", {
+                    appState.oneTimeRunTimerId = setTimeout(() => {
+                        new Notification("🏃 Hydrun: Time to Run!", {
                             body: message,
-                            icon: 'https://via.placeholder.com/64/ff9800/ffffff?text=⏱️', // Orange clock icon
+                            icon: 'https://via.placeholder.com/64/ff9800/ffffff?text=🏃', // Orange runner icon
                             renotify: true,
-                            tag: 'one-time-timer-reminder'
+                            tag: 'one-time-run-timer-reminder'
                         });
-                        appState.oneTimeTimerId = null; // Clear timer ID after it fires
-                        appState.oneTimeTimerEndTime = null;
-                        localStorage.removeItem('hydrunTimerState'); // Clear from local storage
-                        updateTimerUI(); // Update UI
-                        showFeedback('timerFeedback', 'Timer finished!', 'success', 5000);
+                        appState.oneTimeRunTimerId = null; // Clear timer ID after it fires
+                        appState.oneTimeRunTimerEndTime = null;
+                        localStorage.removeItem('hydrunRunTimerState'); // Clear from local storage
+                        updateRunTimerUI(); // Update UI
+                        showFeedback('runTimerFeedback', 'Run timer finished!', 'success', 5000);
                     }, totalMilliseconds);
 
-                    appState.oneTimeTimerEndTime = new Date(new Date().getTime() + totalMilliseconds).toISOString();
+                    appState.oneTimeRunTimerEndTime = new Date(new Date().getTime() + totalMilliseconds).toISOString();
                     saveAppState(); // Save the end time
 
                     // Start visual countdown
-                    setVisualTimer(totalMilliseconds);
+                    setRunVisualTimer(totalMilliseconds);
 
                 } else {
-                    showFeedback('timerFeedback', 'Notification permission required to set timer.', 'error');
+                    showFeedback('runTimerFeedback', 'Notification permission required to set timer.', 'error');
                 }
             });
         }
 
-        function cancelOneTimeTimerReminder() {
-            if (appState.oneTimeTimerId) {
-                clearTimeout(appState.oneTimeTimerId);
-                appState.oneTimeTimerId = null;
-                appState.oneTimeTimerEndTime = null;
-                localStorage.removeItem('hydrunTimerState'); // Clear from local storage
-                showFeedback('timerFeedback', 'Timer cancelled.', 'info');
+        function cancelOneTimeRunTimerReminder() {
+            if (appState.oneTimeRunTimerId) {
+                clearTimeout(appState.oneTimeRunTimerId);
+                appState.oneTimeRunTimerId = null;
+                appState.oneTimeRunTimerEndTime = null;
+                localStorage.removeItem('hydrunRunTimerState'); // Clear from local storage
+                showFeedback('runTimerFeedback', 'Run timer cancelled.', 'info');
             } else {
-                showFeedback('timerFeedback', 'No active timer to cancel.', 'info');
+                showFeedback('runTimerFeedback', 'No active run timer to cancel.', 'info');
             }
-            updateTimerUI(); // Update UI regardless
-            if (timerCountdownInterval) {
-                clearInterval(timerCountdownInterval);
-                timerCountdownInterval = null;
+            updateRunTimerUI(); // Update UI regardless
+            if (runTimerCountdownInterval) {
+                clearInterval(runTimerCountdownInterval);
+                runTimerCountdownInterval = null;
             }
         }
 
-        function updateTimerUI() {
-            const timerStatusElement = document.getElementById('timerStatus');
-            const timerHoursInput = document.getElementById('timerHours');
-            const timerMinutesInput = document.getElementById('timerMinutes');
-            const timerSecondsInput = document.getElementById('timerSeconds');
-            const timerMessageInput = document.getElementById('timerMessage');
+        function updateRunTimerUI() {
+            const timerStatusElement = document.getElementById('runTimerStatus');
+            const timerHoursInput = document.getElementById('runTimerHours');
+            const timerMinutesInput = document.getElementById('runTimerMinutes');
+            const timerSecondsInput = document.getElementById('runTimerSeconds');
+            const timerMessageInput = document.getElementById('runTimerMessage');
+
+            // Set default message if empty
+            if (!timerMessageInput.value) {
+                timerMessageInput.value = "Time to run!";
+            }
 
             // Reset inputs unless a timer is active (but we don't restore input values, just status)
-            if (!appState.oneTimeTimerId && (!appState.oneTimeTimerEndTime || new Date(appState.oneTimeTimerEndTime) < new Date())) {
-                timerStatusElement.textContent = 'No timer active.';
+            if (!appState.oneTimeRunTimerId && (!appState.oneTimeRunTimerEndTime || new Date(appState.oneTimeRunTimerEndTime) < new Date())) {
+                timerStatusElement.textContent = 'No run timer active.';
                 timerHoursInput.value = 0;
                 timerMinutesInput.value = 0;
                 timerSecondsInput.value = 0;
-                timerMessageInput.value = '';
             }
             // If timer was set and page reloaded, the setTimeout is lost, but endTime remains.
-            // We just show "active" status until user re-sets it or it expires.
-            else if (appState.oneTimeTimerEndTime && new Date(appState.oneTimeTimerEndTime) > new Date()) {
-                const remaining = new Date(appState.oneTimeTimerEndTime).getTime() - new Date().getTime();
+            else if (appState.oneTimeRunTimerEndTime && new Date(appState.oneTimeRunTimerEndTime) > new Date()) {
+                const remaining = new Date(appState.oneTimeRunTimerEndTime).getTime() - new Date().getTime();
                 if (remaining > 0) {
                      // Ensure visual countdown is running if the timer is logically active (due to stored endTime)
-                    if (!timerCountdownInterval) {
-                        setVisualTimer(remaining);
+                    if (!runTimerCountdownInterval) {
+                        setRunVisualTimer(remaining);
                     }
                 } else {
-                    timerStatusElement.textContent = 'No timer active.'; // Should have been cleared by setTimeout, but just in case
-                    appState.oneTimeTimerEndTime = null;
-                    localStorage.removeItem('hydrunTimerState');
+                    timerStatusElement.textContent = 'No run timer active.'; // Should have been cleared by setTimeout, but just in case
+                    appState.oneTimeRunTimerEndTime = null;
+                    localStorage.removeItem('hydrunRunTimerState');
                 }
             }
         }
 
-        // Handles the visual countdown on the UI
-        function setVisualTimer(initialMilliseconds) {
-            const timerStatusElement = document.getElementById('timerStatus');
+        // Handles the visual countdown on the UI for RUN timer
+        function setRunVisualTimer(initialMilliseconds) {
+            const timerStatusElement = document.getElementById('runTimerStatus');
             const endTime = new Date().getTime() + initialMilliseconds;
 
-            if (timerCountdownInterval) {
-                clearInterval(timerCountdownInterval); // Clear any existing visual interval
+            if (runTimerCountdownInterval) {
+                clearInterval(runTimerCountdownInterval); // Clear any existing visual interval
             }
 
-            timerCountdownInterval = setInterval(() => {
+            runTimerCountdownInterval = setInterval(() => {
                 const now = new Date().getTime();
                 const distance = endTime - now;
 
                 if (distance < 0) {
-                    clearInterval(timerCountdownInterval);
-                    timerCountdownInterval = null;
-                    timerStatusElement.textContent = 'Timer finished!';
-                    // The actual notification setTimeout handles appState.oneTimeTimerId = null;
+                    clearInterval(runTimerCountdownInterval);
+                    runTimerCountdownInterval = null;
+                    timerStatusElement.textContent = 'Run timer finished!';
+                    // The actual notification setTimeout handles appState.oneTimeRunTimerId = null;
                     return;
                 }
 
@@ -1736,7 +1560,143 @@
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-                timerStatusElement.textContent = `Timer active: ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s remaining`;
+                timerStatusElement.textContent = `Run timer active: ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s remaining`;
+            }, 1000);
+        }
+
+
+        // --- NEW: One-Time Water Timer Functions ---
+        let waterTimerCountdownInterval = null; // To hold the setInterval ID for the visual countdown
+
+        function setOneTimeWaterTimerReminder() {
+            const hours = parseInt(document.getElementById('waterTimerHours').value) || 0;
+            const minutes = parseInt(document.getElementById('waterTimerMinutes').value) || 0;
+            const seconds = parseInt(document.getElementById('waterTimerSeconds').value) || 0;
+            const message = document.getElementById('waterTimerMessage').value.trim();
+
+            const totalMilliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000;
+
+            if (totalMilliseconds <= 0) {
+                showFeedback('waterTimerFeedback', 'Please enter a valid time (hours, minutes, or seconds).', 'error');
+                return;
+            }
+            if (!message) {
+                showFeedback('waterTimerFeedback', 'Please enter a reminder message.', 'error');
+                return;
+            }
+            if (appState.oneTimeWaterTimerId) {
+                showFeedback('waterTimerFeedback', 'A water timer is already active. Cancel it first to set a new one.', 'info');
+                return;
+            }
+
+            requestNotificationPermission(async (granted) => {
+                if (granted) {
+                    showFeedback('waterTimerFeedback', 'Water timer set! You will be notified shortly.', 'success');
+
+                    appState.oneTimeWaterTimerId = setTimeout(() => {
+                        new Notification("💧 Hydrun: Time to Hydrate!", {
+                            body: message,
+                            icon: 'https://via.placeholder.com/64/0077ff/ffffff?text=💧', // Blue water drop icon
+                            renotify: true,
+                            tag: 'one-time-water-timer-reminder'
+                        });
+                        appState.oneTimeWaterTimerId = null; // Clear timer ID after it fires
+                        appState.oneTimeWaterTimerEndTime = null;
+                        localStorage.removeItem('hydrunWaterTimerState'); // Clear from local storage
+                        updateWaterTimerUI(); // Update UI
+                        showFeedback('waterTimerFeedback', 'Water timer finished!', 'success', 5000);
+                    }, totalMilliseconds);
+
+                    appState.oneTimeWaterTimerEndTime = new Date(new Date().getTime() + totalMilliseconds).toISOString();
+                    saveAppState(); // Save the end time
+
+                    // Start visual countdown
+                    setWaterVisualTimer(totalMilliseconds);
+
+                } else {
+                    showFeedback('waterTimerFeedback', 'Notification permission required to set timer.', 'error');
+                }
+            });
+        }
+
+        function cancelOneTimeWaterTimerReminder() {
+            if (appState.oneTimeWaterTimerId) {
+                clearTimeout(appState.oneTimeWaterTimerId);
+                appState.oneTimeWaterTimerId = null;
+                appState.oneTimeWaterTimerEndTime = null;
+                localStorage.removeItem('hydrunWaterTimerState'); // Clear from local storage
+                showFeedback('waterTimerFeedback', 'Water timer cancelled.', 'info');
+            } else {
+                showFeedback('waterTimerFeedback', 'No active water timer to cancel.', 'info');
+            }
+            updateWaterTimerUI(); // Update UI regardless
+            if (waterTimerCountdownInterval) {
+                clearInterval(waterTimerCountdownInterval);
+                waterTimerCountdownInterval = null;
+            }
+        }
+
+        function updateWaterTimerUI() {
+            const timerStatusElement = document.getElementById('waterTimerStatus');
+            const timerHoursInput = document.getElementById('waterTimerHours');
+            const timerMinutesInput = document.getElementById('waterTimerMinutes');
+            const timerSecondsInput = document.getElementById('waterTimerSeconds');
+            const timerMessageInput = document.getElementById('waterTimerMessage');
+
+            // Set default message if empty
+            if (!timerMessageInput.value) {
+                timerMessageInput.value = "Don't forget to drink water!";
+            }
+
+            // Reset inputs unless a timer is active (but we don't restore input values, just status)
+            if (!appState.oneTimeWaterTimerId && (!appState.oneTimeWaterTimerEndTime || new Date(appState.oneTimeWaterTimerEndTime) < new Date())) {
+                timerStatusElement.textContent = 'No water timer active.';
+                timerHoursInput.value = 0;
+                timerMinutesInput.value = 0;
+                timerSecondsInput.value = 0;
+            }
+            // If timer was set and page reloaded, the setTimeout is lost, but endTime remains.
+            else if (appState.oneTimeWaterTimerEndTime && new Date(appState.oneTimeWaterTimerEndTime) > new Date()) {
+                const remaining = new Date(appState.oneTimeWaterTimerEndTime).getTime() - new Date().getTime();
+                if (remaining > 0) {
+                     // Ensure visual countdown is running if the timer is logically active (due to stored endTime)
+                    if (!waterTimerCountdownInterval) {
+                        setWaterVisualTimer(remaining);
+                    }
+                } else {
+                    timerStatusElement.textContent = 'No water timer active.'; // Should have been cleared by setTimeout, but just in case
+                    appState.oneTimeWaterTimerEndTime = null;
+                    localStorage.removeItem('hydrunWaterTimerState');
+                }
+            }
+        }
+
+        // Handles the visual countdown on the UI for WATER timer
+        function setWaterVisualTimer(initialMilliseconds) {
+            const timerStatusElement = document.getElementById('waterTimerStatus');
+            const endTime = new Date().getTime() + initialMilliseconds;
+
+            if (waterTimerCountdownInterval) {
+                clearInterval(waterTimerCountdownInterval); // Clear any existing visual interval
+            }
+
+            waterTimerCountdownInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = endTime - now;
+
+                if (distance < 0) {
+                    clearInterval(waterTimerCountdownInterval);
+                    waterTimerCountdownInterval = null;
+                    timerStatusElement.textContent = 'Water timer finished!';
+                    // The actual notification setTimeout handles appState.oneTimeWaterTimerId = null;
+                    return;
+                }
+
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                timerStatusElement.textContent = `Water timer active: ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s remaining`;
             }, 1000);
         }
 
@@ -1746,15 +1706,12 @@
             loadAppState();
             updateAppUI();
 
-            if (appState.user.waterRemindersEnabled) {
-                startWaterReminderInterval();
+            // If there's an end time from previous session, and it's in the future, start visual timers
+            if (appState.oneTimeRunTimerEndTime && new Date(appState.oneTimeRunTimerEndTime) > new Date()) {
+                setRunVisualTimer(new Date(appState.oneTimeRunTimerEndTime).getTime() - new Date().getTime());
             }
-            if (appState.user.runRemindersEnabled) {
-                startRunReminderInterval();
-            }
-            // If there's an end time from previous session, and it's in the future, start visual timer
-            if (appState.oneTimeTimerEndTime && new Date(appState.oneTimeTimerEndTime) > new Date()) {
-                setVisualTimer(new Date(appState.oneTimeTimerEndTime).getTime() - new Date().getTime());
+            if (appState.oneTimeWaterTimerEndTime && new Date(appState.oneTimeWaterTimerEndTime) > new Date()) {
+                setWaterVisualTimer(new Date(appState.oneTimeWaterTimerEndTime).getTime() - new Date().getTime());
             }
         });
 
