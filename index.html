@@ -73,7 +73,8 @@
 
         input[type="text"],
         input[type="number"],
-        input[type="email"] {
+        input[type="email"],
+        input[type="time"] { /* Added time input type */
             width: calc(100% - 22px); /* Account for padding and border */
             padding: 11px;
             margin: 8px 0 15px 0;
@@ -86,7 +87,8 @@
 
         input[type="text"]:focus,
         input[type="number"]:focus,
-        input[type="email"]:focus {
+        input[type="email"]:focus,
+        input[type="time"]:focus { /* Added time input type */
             border-color: #0077ff;
             outline: none;
         }
@@ -319,17 +321,28 @@
             background-color: #f9f9f9;
             border-radius: 8px;
             border: 1px solid #eee;
+            flex-wrap: wrap; /* Allow wrapping for input fields */
         }
         #profileSection .form-group label {
             margin-bottom: 0;
             font-weight: normal;
             flex-grow: 1; /* Allow label to take available space */
+            margin-right: 10px;
         }
+        #profileSection .form-group input[type="number"],
+        #profileSection .form-group input[type="time"] {
+            width: auto; /* Allow input to size naturally */
+            min-width: 80px; /* Ensure it's not too small */
+            margin: 0; /* Remove default input margins */
+            flex-shrink: 0; /* Don't shrink the input */
+        }
+
         #profileSection .switch {
             position: relative;
             display: inline-block;
             width: 45px;
             height: 25px;
+            flex-shrink: 0;
         }
 
         #profileSection .switch input {
@@ -473,7 +486,11 @@
             <p>Get helpful nudges to stay on track!</p>
 
             <div class="form-group">
-                <label for="waterRemindersToggle">Water Reminders (every 2 hours)</label>
+                <label for="waterReminderInterval">Water Reminder Interval (hours):</label>
+                <input type="number" id="waterReminderInterval" value="2" min="1" step="1" onchange="updateReminderSettings()">
+            </div>
+            <div class="form-group">
+                <label for="waterRemindersToggle">Turn Water Reminders ON/OFF</label>
                 <label class="switch">
                     <input type="checkbox" id="waterRemindersToggle" onchange="toggleWaterReminders()">
                     <span class="slider"></span>
@@ -481,7 +498,11 @@
             </div>
 
             <div class="form-group">
-                <label for="runRemindersToggle">Run Reminders (daily)</label>
+                <label for="runReminderTime">Run Reminder Time (daily):</label>
+                <input type="time" id="runReminderTime" value="17:00" onchange="updateReminderSettings()">
+            </div>
+            <div class="form-group">
+                <label for="runRemindersToggle">Turn Run Reminders ON/OFF</label>
                 <label class="switch">
                     <input type="checkbox" id="runRemindersToggle" onchange="toggleRunReminders()">
                     <span class="slider"></span>
@@ -558,10 +579,13 @@
                 isPremium: false,
                 lastDailyReset: new Date().toDateString(),
                 lastMonthlyReset: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toDateString(),
-                waterRemindersEnabled: false, // NEW: Reminder setting
-                runRemindersEnabled: false,   // NEW: Reminder setting
-                lastWaterReminderSent: null,  // To prevent rapid-fire reminders
-                lastRunReminderSent: null     // To prevent rapid-fire reminders
+                waterRemindersEnabled: false,
+                runRemindersEnabled: false,
+                // NEW: Personalized reminder settings
+                waterReminderIntervalHours: 2, // Default to 2 hours
+                runReminderTime: "17:00",      // Default to 5:00 PM (17:00)
+                lastWaterReminderSent: null,
+                lastRunReminderSent: null
             },
             currentRun: {
                 isActive: false,
@@ -584,7 +608,7 @@
             myLocationMarker: null,
             // Store reminder interval IDs globally to manage them
             waterReminderIntervalId: null,
-            runReminderIntervalId: null
+            runReminderCheckIntervalId: null // Changed name for clarity, this checks hourly for run time
         };
 
         // --- Define your arrays of tips (for dynamic display) ---
@@ -638,6 +662,8 @@
                 // Load new reminder settings
                 appState.user.waterRemindersEnabled = loadedUser.waterRemindersEnabled || false;
                 appState.user.runRemindersEnabled = loadedUser.runRemindersEnabled || false;
+                appState.user.waterReminderIntervalHours = parseFloat(loadedUser.waterReminderIntervalHours) || 2; // Load new interval
+                appState.user.runReminderTime = loadedUser.runReminderTime || "17:00"; // Load new time
                 appState.user.lastWaterReminderSent = loadedUser.lastWaterReminderSent;
                 appState.user.lastRunReminderSent = loadedUser.lastRunReminderSent;
             }
@@ -654,6 +680,10 @@
                 appState.user.waterDrankDaily = 0;
                 appState.user.runDistanceDaily = 0;
                 appState.user.lastDailyReset = today;
+                // Important: Reset lastRunReminderSent if it was for a previous day
+                if (appState.user.lastRunReminderSent !== today) {
+                     appState.user.lastRunReminderSent = null;
+                }
                 saveAppState();
             }
 
@@ -719,7 +749,7 @@
             const buttons = {
                 'waterSection': document.getElementById('showWaterBtn'),
                 'runSection': document.getElementById('showRunBtn'),
-                'profileSection': document.getElementById('showProfileBtn'), // NEW
+                'profileSection': document.getElementById('showProfileBtn'),
                 'premiumSection': document.getElementById('showPremiumBtn')
             };
 
@@ -735,7 +765,7 @@
                          updateTips(id);
                     } else if (id === 'premiumSection') {
                         updatePremiumUI();
-                    } else if (id === 'profileSection') { // NEW: Update profile UI
+                    } else if (id === 'profileSection') { // Update profile UI when shown
                         updateProfileUI();
                     }
                 } else {
@@ -789,9 +819,9 @@
                 updateFriendList();
                 updateLeaderboard();
                 updatePremiumUI();
-                updateProfileUI(); // NEW: Update profile on app load
+                updateProfileUI(); // Update profile on app load
 
-                // Re-establish reminders if they were enabled
+                // Re-establish reminders if they were enabled (after UI is loaded)
                 if (appState.user.waterRemindersEnabled) {
                     startWaterReminderInterval();
                 }
@@ -828,8 +858,8 @@
 
         function logout() {
             // Stop any active reminder intervals before logging out
-            clearInterval(appState.waterReminderIntervalId);
-            clearInterval(appState.runReminderIntervalId);
+            stopWaterReminderInterval();
+            stopRunReminderInterval();
 
             localStorage.removeItem('hydrunAppState');
             location.reload(); // Reload the page to reset the app
@@ -1348,15 +1378,39 @@
         function updateProfileUI() {
             document.getElementById('profileUsernameDisplay').textContent = appState.user.username;
             document.getElementById('profileEmailDisplay').textContent = appState.user.email;
+
+            // Set reminder input values and toggle states
+            document.getElementById('waterReminderInterval').value = appState.user.waterReminderIntervalHours;
+            document.getElementById('runReminderTime').value = appState.user.runReminderTime;
             document.getElementById('waterRemindersToggle').checked = appState.user.waterRemindersEnabled;
             document.getElementById('runRemindersToggle').checked = appState.user.runRemindersEnabled;
         }
+
+        function updateReminderSettings() {
+            // This function is called when the interval/time inputs change
+            appState.user.waterReminderIntervalHours = parseFloat(document.getElementById('waterReminderInterval').value) || 2;
+            appState.user.runReminderTime = document.getElementById('runReminderTime').value || "17:00";
+            saveAppState();
+            showFeedback('reminderFeedback', 'Reminder settings updated.', 'success', 2000);
+
+            // If reminders are currently ON, restart their intervals to apply new settings
+            if (appState.user.waterRemindersEnabled) {
+                stopWaterReminderInterval();
+                startWaterReminderInterval();
+            }
+            if (appState.user.runRemindersEnabled) {
+                stopRunReminderInterval();
+                startRunReminderInterval();
+            }
+        }
+
 
         // --- Reminder System ---
 
         async function requestNotificationPermission(callback) {
             if (!("Notification" in window)) {
                 showFeedback('reminderFeedback', "This browser does not support desktop notifications.", 'error');
+                if (callback) callback(false);
                 return false;
             }
 
@@ -1385,20 +1439,25 @@
 
         function sendWaterReminder() {
             const now = new Date();
-            // Prevent reminder if too soon after last one or outside active hours (8 AM - 10 PM)
-            if (appState.user.lastWaterReminderSent && (now.getTime() - new Date(appState.user.lastWaterReminderSent).getTime() < 1.5 * 60 * 60 * 1000)) { // 1.5 hours debounce
-                return;
+            const intervalHours = appState.user.waterReminderIntervalHours;
+            const lastSent = appState.user.lastWaterReminderSent ? new Date(appState.user.lastWaterReminderSent) : null;
+
+            // Check if enough time has passed since the last reminder
+            if (lastSent && (now.getTime() - lastSent.getTime() < intervalHours * 60 * 60 * 1000)) {
+                return; // Not enough time has passed
             }
+
+            // Define active reminder hours (e.g., 8 AM to 10 PM)
             const currentHour = now.getHours();
-            if (currentHour < 8 || currentHour > 22) { // Only send between 8 AM and 10 PM
-                return;
+            if (currentHour < 8 || currentHour > 22) {
+                return; // Outside active reminder hours
             }
 
             new Notification("💧 Hydrun: Time to Hydrate!", {
                 body: "Don't forget to drink some water to reach your daily goal!",
-                icon: 'https://via.placeholder.com/64/0077ff/ffffff?text=💧', // Placeholder icon
-                renotify: true, // Show new notification even if one is active
-                tag: 'water-reminder' // Group notifications
+                icon: 'https://via.placeholder.com/64/0077ff/ffffff?text=💧',
+                renotify: true,
+                tag: 'water-reminder'
             });
             appState.user.lastWaterReminderSent = now.toISOString();
             saveAppState();
@@ -1408,35 +1467,40 @@
         function sendRunReminder() {
             const now = new Date();
             const todayDateString = now.toDateString();
+            const [targetHour, targetMinute] = appState.user.runReminderTime.split(':').map(Number);
 
             // Only send one run reminder per day
             if (appState.user.lastRunReminderSent === todayDateString) {
                 return;
             }
 
-            // Check if run daily goal is met. If not, remind.
-            // You might want to adjust this logic based on how you want the run reminder to behave.
-            // For now, it will remind if the daily run goal is NOT met by certain hours.
-            const currentHour = now.getHours();
-            if (appState.user.runDistanceDaily < appState.user.runDailyGoal && currentHour >= 17 && currentHour <= 21) { // Between 5 PM and 9 PM if goal not met
-                 new Notification("🏃 Hydrun: Time for a Run!", {
-                    body: `Your daily run goal is ${appState.user.runDailyGoal} km. You've only run ${appState.user.runDistanceDaily.toFixed(2)} km today. Let's go!`,
-                    icon: 'https://via.placeholder.com/64/0077ff/ffffff?text=🏃', // Placeholder icon
-                    renotify: true,
-                    tag: 'run-reminder'
-                });
-                appState.user.lastRunReminderSent = todayDateString;
-                saveAppState();
-                console.log("Run reminder sent!");
+            // Check if current time is the target time (within a minute tolerance)
+            if (now.getHours() === targetHour && now.getMinutes() >= targetMinute && now.getMinutes() < targetMinute + 1) {
+                // Also check if daily run goal is NOT met
+                if (appState.user.runDistanceDaily < appState.user.runDailyGoal) {
+                    new Notification("🏃 Hydrun: Time for a Run!", {
+                        body: `Your daily run goal is ${appState.user.runDailyGoal} km. You've only run ${appState.user.runDistanceDaily.toFixed(2)} km today. Let's go!`,
+                        icon: 'https://via.placeholder.com/64/0077ff/ffffff?text=🏃',
+                        renotify: true,
+                        tag: 'run-reminder'
+                    });
+                    appState.user.lastRunReminderSent = todayDateString; // Mark as sent for today
+                    saveAppState();
+                    console.log("Run reminder sent!");
+                } else {
+                    console.log("Run goal already met for today, no reminder needed.");
+                    // If goal met, mark as sent for today to prevent future reminders for this day
+                    appState.user.lastRunReminderSent = todayDateString;
+                    saveAppState();
+                }
             }
         }
 
         // Functions to start/stop reminder intervals
         function startWaterReminderInterval() {
-            // Clear existing interval to prevent duplicates
-            if (appState.waterReminderIntervalId) clearInterval(appState.waterReminderIntervalId);
-            // Check every 15 minutes if it's time for a reminder
-            appState.waterReminderIntervalId = setInterval(sendWaterReminder, 15 * 60 * 1000);
+            stopWaterReminderInterval(); // Ensure any existing interval is cleared
+            // Water reminders will check every 15 minutes if it's time to send one based on intervalHours
+            appState.waterReminderIntervalId = setInterval(sendWaterReminder, 15 * 60 * 1000); // Check every 15 mins
             console.log("Water reminder interval started.");
         }
 
@@ -1449,17 +1513,16 @@
         }
 
         function startRunReminderInterval() {
-            // Clear existing interval
-            if (appState.runReminderIntervalId) clearInterval(appState.runReminderIntervalId);
-            // Check every hour if it's time for a run reminder
-            appState.runReminderIntervalId = setInterval(sendRunReminder, 60 * 60 * 1000);
+            stopRunReminderInterval(); // Ensure any existing interval is cleared
+            // Run reminders will check every minute if it's the target time and goal isn't met
+            appState.runReminderCheckIntervalId = setInterval(sendRunReminder, 60 * 1000); // Check every minute
             console.log("Run reminder interval started.");
         }
 
         function stopRunReminderInterval() {
-            if (appState.runReminderIntervalId) {
-                clearInterval(appState.runReminderIntervalId);
-                appState.runReminderIntervalId = null;
+            if (appState.runReminderCheckIntervalId) {
+                clearInterval(appState.runReminderCheckIntervalId);
+                appState.runReminderCheckIntervalId = null;
                 console.log("Run reminder interval stopped.");
             }
         }
@@ -1517,8 +1580,10 @@
             loadAppState();
             updateAppUI();
 
-            // When the app loads, if reminders were previously enabled, restart their intervals.
-            // This is crucial because setIntervals are cleared on page reload/close.
+            // IMPORTANT: Re-establish intervals on load *after* initial UI update,
+            // as the interval logic relies on updated appState.user values.
+            // These functions internally check appState.user.waterRemindersEnabled/runRemindersEnabled
+            // and appState.user.waterReminderIntervalHours/runReminderTime.
             if (appState.user.waterRemindersEnabled) {
                 startWaterReminderInterval();
             }
